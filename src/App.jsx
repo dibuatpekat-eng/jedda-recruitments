@@ -68,7 +68,7 @@ const sans = "'DM Sans', sans-serif";
 
 const Logo = ({ size = "sm", img = false }) => {
   const h = size === "lg" ? 24 : size === "md" ? 16 : 14;
-  if (img) return <img src="/logo.png" alt="Jedda" style={{ height: h, width: "auto", display: "block" }} />;
+  if (img) return <img src="/logo.png" alt="Jedda" style={{ height: h, width: "auto", display: "block", margin: "0 auto" }} />;
   const sp = size === "lg" ? 6 : size === "md" ? 5 : 3;
   return <span style={{ fontFamily: sans, fontSize: size === "lg" ? 20 : size === "md" ? 16 : 12, fontWeight: 400, letterSpacing: sp, color: "#1a1a1a" }}>Jedda</span>;
 };
