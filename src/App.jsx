@@ -237,8 +237,8 @@ export default function App() {
 
   const slide = { opacity: vis ? 1 : 0, transform: vis ? "translateY(0)" : `translateY(${dir * 10}px)`, transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)" };
 
-  // ═══ DONE ═══
-  if (done) return (
+// ═══ DONE ═══
+if (done) return (
   <Sh>
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
