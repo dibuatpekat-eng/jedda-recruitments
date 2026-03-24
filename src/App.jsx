@@ -254,7 +254,7 @@ if (done) return (
         <div style={{ width: "100%", height: 1, background: "#f0f0f0" }} />
         <div style={{ height: 36 }} />
         <p style={{ fontSize: 9, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", marginBottom: 16 }}>know someone who'd be a good fit?</p>
-        
+        <a
           href="https://wa.me/?text=Jedda%20is%20currently%20open%20for%20recruitment.%0ACheck%20out%20the%20available%20roles%20here%20%E2%86%92%20https%3A%2F%2Fjedda-recruitments.vercel.app%2F"
           target="_blank"
           rel="noreferrer"
