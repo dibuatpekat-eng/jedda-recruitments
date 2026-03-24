@@ -66,11 +66,10 @@ const FD_SPECS = ["shirts", "outerwear", "knitwear", "pants & bottoms", "pattern
 const AVAIL_OPTIONS = ["immediately", "within 1 month", "within 3 months", "other"];
 const sans = "'DM Sans', sans-serif";
 
-const Logo = ({ size = "sm", img = false }) => {
-  const h = size === "lg" ? 24 : size === "md" ? 16 : 14;
-  if (img) return <img src="/logo.png" alt="Jedda" style={{ height: h, width: "auto", display: "block", margin: "0 auto" }} />;
-  const sp = size === "lg" ? 6 : size === "md" ? 5 : 3;
-  return <span style={{ fontFamily: sans, fontSize: size === "lg" ? 20 : size === "md" ? 16 : 12, fontWeight: 400, letterSpacing: sp, color: "#1a1a1a" }}>Jedda</span>;
+const Logo = ({ hero = false, img = false }) => {
+  const h = hero ? 20 : 14;
+  if (img) return <img src="/logo.png" alt="Jedda" style={{ height: h, width: "auto", display: "block" }} />;
+  return <span style={{ fontFamily: sans, fontSize: hero ? 18 : 12, fontWeight: 400, letterSpacing: hero ? 6 : 3, color: "#1a1a1a" }}>Jedda</span>;
 };
 const Lnk = ({ text, onClick, bold }) => (
   <button className="m-link" onClick={onClick} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#1a1a1a", cursor: "pointer", letterSpacing: 1.5, transition: "opacity 0.2s", padding: 0, borderBottom: `1px solid ${bold ? "#1a1a1a" : "#ccc"}`, paddingBottom: 3 }}>{text}</button>
@@ -173,7 +172,6 @@ export default function App() {
 
   const onKey = (e) => { if (e.key === "Enter" && !e.shiftKey && curForm !== "review" && curForm !== "whyJedda") { e.preventDefault(); nextForm(); } };
 
-  // ─── SUBMIT TO SUPABASE ───
   const submitForm = async () => {
     setSubmitting(true);
     setSubmitErr("");
@@ -183,7 +181,6 @@ export default function App() {
       let cvUrl = "";
       let portfolioUrl = "";
 
-      // Upload CV
       if (d.cv) {
         const cvPath = `cv/${ts}_${safeName}_cv.pdf`;
         const { error: cvErr } = await supabase.storage.from("documents").upload(cvPath, d.cv, { contentType: "application/pdf" });
@@ -192,7 +189,6 @@ export default function App() {
         cvUrl = cvData.publicUrl;
       }
 
-      // Upload Portfolio
       if (d.portfolio) {
         const portPath = `portfolio/${ts}_${safeName}_portfolio.pdf`;
         const { error: portErr } = await supabase.storage.from("documents").upload(portPath, d.portfolio, { contentType: "application/pdf" });
@@ -201,7 +197,6 @@ export default function App() {
         portfolioUrl = portData.publicUrl;
       }
 
-      // Insert data
       const { error: dbErr } = await supabase.from("applications").insert({
         position: isOther ? d.otherRole : role.title,
         fd_sub: isFD ? "Fashion Designer" : (role?.id === "ddl" ? "Design & Development Lead" : ""),
@@ -245,7 +240,7 @@ export default function App() {
   // ═══ DONE ═══
   if (done) return (
     <Sh><div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}><div style={{ textAlign: "center" }}>
-      <Logo size="md" img /><div style={{ height: 36 }} /><div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto" }} /><div style={{ height: 32 }} />
+      <Logo hero img /><div style={{ height: 36 }} /><div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto" }} /><div style={{ height: 32 }} />
       <p style={{ fontSize: 12, fontWeight: 300 }}>thank you for your application.</p><div style={{ height: 10 }} />
       <p style={{ fontSize: 11, fontWeight: 200, color: "#999", lineHeight: 1.8 }}>we have received your submission and will review it carefully.<br />you will hear from us soon.</p>
     </div></div></Sh>
@@ -255,7 +250,7 @@ export default function App() {
   if (phase === "welcome") return (
     <Sh><div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ textAlign: "center", maxWidth: 360, opacity: ready ? 1 : 0, transform: ready ? "translateY(0)" : "translateY(12px)", transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }}>
-        <Logo size="lg" img /><div style={{ height: 36 }} />
+        <Logo hero img /><div style={{ height: 36 }} />
         <p style={{ fontSize: 9, fontWeight: 400, letterSpacing: 5, textTransform: "uppercase" }}>open recruitment</p>
         <div style={{ height: 20 }} /><div style={{ width: 32, height: 1, background: "#ccc", margin: "0 auto" }} /><div style={{ height: 24 }} />
         <p style={{ fontSize: 11, fontWeight: 200, lineHeight: 2, color: "#999" }}>seeking individuals who value<br />thoughtful work and quiet precision.</p>
@@ -417,7 +412,7 @@ export default function App() {
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: 1, background: "#f0f0f0", zIndex: 20 }}><div style={{ height: "100%", background: "#1a1a1a", transition: "width 0.5s ease", width: `${prog*100}%` }} /></div>
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 10, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", background: "linear-gradient(#fff 70%, transparent)" }}>
           <button className="m-back" onClick={prevForm} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer", padding: 0, transition: "color 0.2s", minWidth: 44, textAlign: "left" }}>← back</button>
-          <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)" }}><Logo size="sm" img /></div>
+          <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)" }}><Logo img /></div>
           <p style={{ fontSize: 9, fontWeight: 200, color: "#ccc", letterSpacing: 2, minWidth: 44, textAlign: "right" }}>{String(step+1).padStart(2,"0")}/{String(totalForm).padStart(2,"0")}</p>
         </div>
         <div style={{ padding: "90px 24px 0", maxWidth: 420, margin: "0 auto", width: "100%" }}>
@@ -436,7 +431,7 @@ export default function App() {
 }
 
 function Sh({ children, scroll }) { return <div style={{ position: scroll ? "relative" : "fixed", inset: scroll ? undefined : 0, background: "#fff", overflowY: "auto", minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: sans, color: "#1a1a1a" }}>{children}</div>; }
-function TopNav({ onBack }) { return <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0 48px" }}><button className="m-back" onClick={onBack} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer", padding: 0, transition: "color 0.2s" }}>← back</button><Logo size="sm" img /><span style={{ minWidth: 44 }} /></div>; }
+function TopNav({ onBack }) { return <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 0 48px" }}><button className="m-back" onClick={onBack} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer", padding: 0, transition: "color 0.2s" }}>← back</button><Logo img /><span style={{ minWidth: 44 }} /></div>; }
 function Nm({ n, t }) { return <div style={{ marginBottom: 14 }}><span style={{ fontFamily: sans, fontSize: 9, fontWeight: 300, color: "#ccc", letterSpacing: 2 }}>{n}</span>{t && <span style={{ fontFamily: sans, fontSize: 9, fontWeight: 200, color: "#e0e0e0", letterSpacing: 2 }}> / {String(t).padStart(2,"0")}</span>}</div>; }
 function Q({ children }) { return <p style={{ fontFamily: sans, fontSize: 16, fontWeight: 300, lineHeight: 1.5, color: "#1a1a1a", margin: 0 }}>{children}</p>; }
 function Fld({ num, t, q, ph, val, type, onChange, onKey, iRef, error }) { return <div><Nm n={num} t={t} /><p style={{ fontFamily: sans, fontSize: 16, fontWeight: 300, lineHeight: 1.5, color: "#1a1a1a" }}>{q}</p><div style={{ height: 20 }} /><input ref={iRef} style={il} placeholder={ph} value={val} type={type||"text"} onChange={e=>onChange(e.target.value)} onKeyDown={onKey} />{error && <p style={es}>{error}</p>}</div>; }
