@@ -112,7 +112,8 @@ export default function AdminDashboard() {
       a.full_name?.toLowerCase().includes(q) ||
       a.position?.toLowerCase().includes(q) ||
       a.city?.toLowerCase().includes(q) ||
-      a.work_type?.toLowerCase().includes(q);
+      a.work_type?.toLowerCase().includes(q) ||
+      a.availability?.toLowerCase().includes(q);
     return matchDiv && matchSearch;
   });
 
