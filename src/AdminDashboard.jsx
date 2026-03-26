@@ -77,7 +77,7 @@ function DetailPanel({ app, onClose }) {
               : !app.portfolio_link && <span style={{ fontSize: 12, fontWeight: 200, color: "#ccc" }}>no portfolio uploaded</span>
             }
             {app.portfolio_link
-              ? <a href={app.portfolio_link} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 300, color: "#888", textDecoration: "none", borderBottom: "1px solid #e8e8e8", paddingBottom: 3, display: "inline-block", width: "fit-content" }}>{app.portfolio_link} ↗</a>
+              ? <a href={app.portfolio_link} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 300, color: "#888", textDecoration: "none", borderBottom: "1px solid #e8e8e8", paddingBottom: 3, display: "inline-block", width: "fit-content" }}>portfolio link ↗</a>
               : null
             }
           </div>
