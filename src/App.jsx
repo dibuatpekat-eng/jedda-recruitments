@@ -412,7 +412,7 @@ if (done) return (
               <span style={{ fontSize: 10, fontWeight: 200, color: "#ccc", letterSpacing: 1 }}>or</span>
               <div style={{ flex: 1, height: 1, background: "#f0f0f0" }} />
             </div>
-            <input style={{ ...il, fontSize: 13 }} placeholder="behance, dribbble, issuu, notion, etc." type="url" value={d.portfolioLink} onChange={e => { setD({ ...d, portfolioLink: e.target.value }); setErr({}); }} onKeyDown={onKey} />
+            <input style={{ ...il, fontSize: 13 }} placeholder="paste a link - behance, dribbble, issuu, notion, etc." type="url" value={d.portfolioLink} onChange={e => { setD({ ...d, portfolioLink: e.target.value }); setErr({}); }} onKeyDown={onKey} />
             <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", marginTop: 7 }}>make sure the link is publicly accessible</p>
           </div>);
 
