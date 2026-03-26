@@ -85,7 +85,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState("");
-  const [d, setD] = useState({ otherRole: "", fdSpecs: [], fdSpecOther: "", workType: "", fullName: "", phone: "", email: "", city: "", bandung: null, whyJedda: "", avail: "", availOther: "", cv: null, portfolio: null, onsite: null });
+  const [d, setD] = useState({ otherRole: "", fdSpecs: [], fdSpecOther: "", workType: "", fullName: "", phone: "", email: "", city: "", bandung: null, whyJedda: "", avail: "", availOther: "", cv: null, portfolio: null, portfolioLink: "", onsite: null });
   const [cvName, setCvName] = useState("");
   const [portName, setPortName] = useState("");
   const [done, setDone] = useState(false);
@@ -212,6 +212,7 @@ export default function App() {
         why_jedda: d.whyJedda,
         cv_url: cvUrl,
         portfolio_url: portfolioUrl,
+        portfolio_link: d.portfolioLink.trim() || "",
       });
 
       if (dbErr) throw new Error("Submission failed: " + dbErr.message);
@@ -233,7 +234,7 @@ export default function App() {
   };
   const toggleSpec = (spec) => { const c = [...d.fdSpecs]; const i = c.indexOf(spec); if (i >= 0) c.splice(i, 1); else c.push(spec); setD({ ...d, fdSpecs: c }); setErr({}); };
   const goTo = (p, r) => { if (r) setRole(r); setPhase(p); window.scrollTo(0, 0); };
-  const startApply = () => { setD({ otherRole: "", fdSpecs: [], fdSpecOther: "", workType: "", fullName: "", phone: "", email: "", city: "", bandung: null, whyJedda: "", avail: "", availOther: "", cv: null, portfolio: null, onsite: null }); setCvName(""); setPortName(""); setStep(0); setSubmitErr(""); goTo("form"); };
+  const startApply = () => { setD({ otherRole: "", fdSpecs: [], fdSpecOther: "", workType: "", fullName: "", phone: "", email: "", city: "", bandung: null, whyJedda: "", avail: "", availOther: "", cv: null, portfolio: null, portfolioLink: "", onsite: null }); setCvName(""); setPortName(""); setStep(0); setSubmitErr(""); goTo("form"); };
 
   const slide = { opacity: vis ? 1 : 0, transform: vis ? "translateY(0)" : `translateY(${dir * 10}px)`, transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)" };
 
@@ -400,11 +401,20 @@ if (done) return (
             <div className="m-upload" onClick={() => cvRef.current?.click()} style={ub}>
               {cvName ? (<><p style={{ fontSize: 13, color: "#1a1a1a", marginBottom: 4 }}>✓</p><p style={{ fontSize: 12, fontWeight: 400, color: "#1a1a1a" }}>{cvName}</p><p style={uh}>click to replace</p></>) : (<><p style={{ fontSize: 13, color: "#ccc", marginBottom: 4 }}>↑</p><p style={{ fontSize: 12, fontWeight: 300, color: "#999" }}>click to upload</p></>)}
             </div>{err.cv && <p style={es}>{err.cv}</p>}
-            <p style={{ ...ul, marginTop: 20 }}>portfolio <span style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span></p>
+            <div style={{ height: 24 }} />
+            <p style={{ ...ul, marginTop: 0 }}>portfolio <span style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span></p>
             <input ref={portRef} type="file" accept=".pdf" onChange={handleFile("portfolio")} style={{ display: "none" }} />
             <div className="m-upload" onClick={() => portRef.current?.click()} style={ub}>
-              {portName ? (<><p style={{ fontSize: 13, color: "#1a1a1a", marginBottom: 4 }}>✓</p><p style={{ fontSize: 12, fontWeight: 400, color: "#1a1a1a" }}>{portName}</p><p style={uh}>click to replace</p></>) : (<><p style={{ fontSize: 13, color: "#ccc", marginBottom: 4 }}>↑</p><p style={{ fontSize: 12, fontWeight: 300, color: "#999" }}>click to upload</p></>)}
-            </div></div>);
+              {portName ? (<><p style={{ fontSize: 13, color: "#1a1a1a", marginBottom: 4 }}>✓</p><p style={{ fontSize: 12, fontWeight: 400, color: "#1a1a1a" }}>{portName}</p><p style={uh}>click to replace</p></>) : (<><p style={{ fontSize: 13, color: "#ccc", marginBottom: 4 }}>↑</p><p style={{ fontSize: 12, fontWeight: 300, color: "#999" }}>click to upload pdf</p></>)}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "12px 0" }}>
+              <div style={{ flex: 1, height: 1, background: "#f0f0f0" }} />
+              <span style={{ fontSize: 10, fontWeight: 200, color: "#ccc", letterSpacing: 1 }}>or</span>
+              <div style={{ flex: 1, height: 1, background: "#f0f0f0" }} />
+            </div>
+            <input style={{ ...il, fontSize: 13 }} placeholder="behance, dribbble, issuu, notion, etc." type="url" value={d.portfolioLink} onChange={e => { setD({ ...d, portfolioLink: e.target.value }); setErr({}); }} onKeyDown={onKey} />
+            <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", marginTop: 7 }}>make sure the link is publicly accessible</p>
+          </div>);
 
         case "whyJedda":
           return (<div><Nm n={sIdx("whyJedda")} t={totalForm-1} /><Q>why do you want to be part of jedda?</Q><div style={{ height: 20 }} />
@@ -425,7 +435,7 @@ if (done) return (
               {needsBandung && <RR l="bandung" v={d.bandung ? "yes" : "no"} />}
               <RR l="available" v={d.avail === "other" ? d.availOther : d.avail} />
               <RR l="cv" v={cvName} />
-              <RR l="portfolio" v={portName || "—"} />
+              <RR l="portfolio" v={portName || (d.portfolioLink.trim() ? d.portfolioLink.trim() : "—")} />
               <RR l="why jedda" v={d.whyJedda.length > 50 ? d.whyJedda.substring(0, 50) + "..." : d.whyJedda} last />
             </div>
             <div style={{ height: 32 }} />
