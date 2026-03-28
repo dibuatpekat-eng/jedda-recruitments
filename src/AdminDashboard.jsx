@@ -122,7 +122,7 @@ export default function AdminDashboard() {
   });
 
   const fromBandung = apps.filter(a => a.city?.toLowerCase().includes("bandung")).length;
-  const withPortfolio = apps.filter(a => a.portfolio_url).length;
+  const withPortfolio = apps.filter(a => a.portfolio_url || a.portfolio_link).length;
 
   if (!authed) return (
     <div style={{ position: "fixed", inset: 0, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans }}>
