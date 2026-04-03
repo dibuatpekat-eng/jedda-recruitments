@@ -159,7 +159,7 @@ function Stats({ cols = 4, items }) {
 }
 
 // ─── Detail Panel ──────────────────────────────────────────
-function DetailPanel({ app, onClose }) {
+function DetailPanel({ app, onClose, onMoveBack }) {
   if (!app) return null;
   const tag = typeTag(app.work_type);
   const fields = [
@@ -168,6 +168,25 @@ function DetailPanel({ app, onClose }) {
     ["city", app.city], ["availability", app.availability],
     ["why jedda", app.why_jedda],
   ].filter(([, v]) => v);
+
+  const moveBackOptions = {
+    "shortlisted": [
+      { label: "← pending review", status: "new" },
+      { label: "on hold", status: "on hold" },
+    ],
+    "on hold": [
+      { label: "← pending review", status: "new" },
+    ],
+    "testing": [
+      { label: "← shortlisted", status: "shortlisted" },
+    ],
+    "finalist": [
+      { label: "← testing", status: "testing" },
+      { label: "← shortlisted", status: "shortlisted" },
+    ],
+  };
+  const moveOpts = moveBackOptions[app.status] || [];
+
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.1)", zIndex: 300, display: "flex", justifyContent: "flex-end" }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 400, height: "100%", background: "#fff", overflowY: "auto", padding: "36px 28px", borderLeft: "1px solid #f0f0f0", fontFamily: sans }}>
@@ -196,6 +215,24 @@ function DetailPanel({ app, onClose }) {
               : <span style={{ fontSize: 11, fontWeight: 200, color: "#ccc" }}>no portfolio uploaded</span>
           }
         </div>
+        {moveOpts.length > 0 && (
+          <>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", margin: "28px 0 12px" }}>change status</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 0, paddingTop: 4 }}>
+              <span style={{ fontSize: 9, fontWeight: 300, color: "#ccc", letterSpacing: 1, textTransform: "uppercase", flexShrink: 0, marginRight: 10 }}>move back to</span>
+              {moveOpts.map((opt, i) => (
+                <span key={opt.status} style={{ display: "flex", alignItems: "center" }}>
+                  {i > 0 && <div style={{ width: 1, height: 10, background: "#e8e8e8", margin: "0 10px" }} />}
+                  <button onClick={() => { onMoveBack(app.id, opt.status); onClose(); }}
+                    style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer", padding: 0, transition: "color 0.15s" }}
+                    onMouseOver={e => e.target.style.color = "#1a1a1a"}
+                    onMouseOut={e => e.target.style.color = "#aaa"}
+                  >{opt.label}</button>
+                </span>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -403,14 +440,14 @@ export default function AdminDashboard() {
         return (
           <div style={{ padding: "36px 40px" }}>
             {ph("all applicants", "status overview — click a row to view details")}
-            <Stats cols={4} items={[["total", apps.length], ["new", counts.new], ["in pipeline", inPipeline], ["with portfolio", apps.filter(a => a.portfolio_url || a.portfolio_link).length]]} />
+            <Stats cols={4} items={[["total", apps.length], ["pending review", counts.new], ["in progress", inPipeline], ["rejected", counts.rejected]]} />
             <Tbl>
-              <THead cols="1.8fr 1.4fr 130px 110px">
+              <THead cols="1fr 1.2fr 160px 110px">
                 <TH>name</TH><TH>position</TH><TH>availability</TH><TH>status</TH>
               </THead>
               {loading ? <Empty msg="loading..." /> : apps.length === 0 ? <Empty msg="no applications yet" /> :
                 apps.map(a => (
-                  <TRow key={a.id} cols="1.8fr 1.4fr 130px 110px" onClick={() => setPanelApp(a)}>
+                  <TRow key={a.id} cols="1fr 1.2fr 160px 110px" onClick={() => setPanelApp(a)}>
                     <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <span style={{ fontSize: 11, fontWeight: 200, color: "#999" }}>{a.availability}</span>
@@ -445,18 +482,18 @@ export default function AdminDashboard() {
                 style={{ border: "none", borderBottom: "1px solid #e8e8e8", padding: "6px 0", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#1a1a1a", background: "transparent", outline: "none", width: 220 }} />
             </div>
             <Tbl>
-              <THead cols="220px 1fr 80px 52px 52px 1fr">
-                <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH><span style={{ paddingLeft: 20 }}>action</span></TH>
+              <THead cols="200px 1fr 90px 56px 56px 1fr">
+                <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH><span style={{ paddingLeft: 24 }}>action</span></TH>
               </THead>
               {filteredNew.length === 0 ? <Empty msg="no pending applicants" /> :
                 filteredNew.map(a => (
-                  <TRow key={a.id} cols="220px 1fr 80px 52px 52px 1fr" onClick={() => setPanelApp(a)}>
+                  <TRow key={a.id} cols="200px 1fr 90px 56px 56px 1fr" onClick={() => setPanelApp(a)}>
                     <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <Badge wt={a.work_type} />
                     <DocLink url={a.cv_url} />
                     <DocLink url={a.portfolio_url || a.portfolio_link} />
-                    <div style={{ paddingLeft: 20 }} onClick={e => e.stopPropagation()}>
+                    <div style={{ paddingLeft: 24 }} onClick={e => e.stopPropagation()}>
                       <ActionRow actions={[
                         { label: "on hold", onClick: () => { updateStatus(a.id, "on hold"); showToast("→ on hold"); } },
                         { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
@@ -479,18 +516,18 @@ export default function AdminDashboard() {
           <div style={{ padding: "36px 40px" }}>
             {ph("on hold", "under consideration — no decision yet")}
             <Tbl>
-              <THead cols="220px 1fr 80px 52px 52px 1fr">
-                <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH><span style={{ paddingLeft: 20 }}>action</span></TH>
+              <THead cols="200px 1fr 90px 56px 56px 1fr">
+                <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH><span style={{ paddingLeft: 24 }}>action</span></TH>
               </THead>
               {onholdApps.length === 0 ? <Empty msg="nothing on hold" /> :
                 onholdApps.map(a => (
-                  <TRow key={a.id} cols="220px 1fr 80px 52px 52px 1fr" onClick={() => setPanelApp(a)}>
+                  <TRow key={a.id} cols="200px 1fr 90px 56px 56px 1fr" onClick={() => setPanelApp(a)}>
                     <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <Badge wt={a.work_type} />
                     <DocLink url={a.cv_url} />
                     <DocLink url={a.portfolio_url || a.portfolio_link} />
-                    <div style={{ paddingLeft: 20 }} onClick={e => e.stopPropagation()}>
+                    <div style={{ paddingLeft: 24 }} onClick={e => e.stopPropagation()}>
                       <ActionRow actions={[
                         { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
                         { label: "reject", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
@@ -511,12 +548,12 @@ export default function AdminDashboard() {
           <div style={{ padding: "36px 40px" }}>
             {ph("shortlisted", "passed initial review — send test link to proceed")}
             <Tbl>
-              <THead cols="1.8fr 1.4fr 80px 1fr">
+              <THead cols="1fr 1fr 100px 1fr">
                 <TH>name</TH><TH>position</TH><TH>type</TH><TH>action</TH>
               </THead>
               {slApps.length === 0 ? <Empty msg="no one shortlisted yet" /> :
                 slApps.map(a => (
-                  <TRow key={a.id} cols="1.8fr 1.4fr 80px 1fr" onClick={() => setPanelApp(a)}>
+                  <TRow key={a.id} cols="1fr 1fr 100px 1fr" onClick={() => setPanelApp(a)}>
                     <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <Badge wt={a.work_type} />
@@ -733,7 +770,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* MODALS & PANEL */}
-      {panelApp && <DetailPanel app={panelApp} onClose={() => setPanelApp(null)} />}
+      {panelApp && <DetailPanel app={panelApp} onClose={() => setPanelApp(null)} onMoveBack={async (id, status) => { await updateStatus(id, status); showToast("→ " + status); setPanelApp(null); }} />}
 
       {interviewApp && (
         <InterviewModal
