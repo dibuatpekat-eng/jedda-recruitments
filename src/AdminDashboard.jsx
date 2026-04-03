@@ -403,7 +403,7 @@ export default function AdminDashboard() {
         return (
           <div style={{ padding: "36px 40px" }}>
             {ph("all applicants", "status overview — click a row to view details")}
-            <Stats cols={4} items={[["total", apps.length], ["new", counts.new], ["in pipeline", inPipeline], ["with portfolio", apps.filter(a => a.portfolio_url || a.portfolio_link).length]]} />
+            <Stats cols={4} items={[["total", apps.length], ["pending review", counts.new], ["in progress", inPipeline], ["rejected", counts.rejected]]} />
             <Tbl>
               <THead cols="1.8fr 1.4fr 130px 110px">
                 <TH>name</TH><TH>position</TH><TH>availability</TH><TH>status</TH>
