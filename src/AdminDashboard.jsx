@@ -163,12 +163,12 @@ function DetailPanel({ app, onClose, onMoveBack }) {
   if (!app) return null;
   const tag = typeTag(app.work_type);
   const fields = [
-  ["position", app.position], ["work type", app.work_type],
-  ["phone", app.phone], ["email", app.email],
-  ["city", app.city], ["open to bandung", app.bandung],
-  ["availability", app.availability],
-  ["why jedda", app.why_jedda],
-].filter(([, v]) => v);
+    ["position", app.position], ["work type", app.work_type],
+    ["phone", app.phone], ["email", app.email],
+    ["city", app.city], ["open to bandung", app.bandung],
+    ["availability", app.availability],
+    ["why jedda", app.why_jedda],
+  ].filter(([, v]) => v);
 
   const moveBackOptions = {
     "shortlisted": [
@@ -404,7 +404,6 @@ export default function AdminDashboard() {
     </div>
   );
 
-  const sb = (fontFamily) => sans;
   const SbItem = ({ id, label }) => (
     <div className={`sb-item${page === id ? " active" : ""}`} onClick={() => { setPage(id); setTestingApp(null); }}
       style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 22px", cursor: "pointer", transition: "all 0.12s", borderLeft: "2px solid transparent" }}>
@@ -484,12 +483,12 @@ export default function AdminDashboard() {
             </div>
             <Tbl>
               <THead cols="200px 1fr 90px 56px 56px 60px 1fr">
-                 <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH>bandung</TH><TH><span style={{ paddingLeft: 24 }}>action</span></TH>
+                <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH>bandung</TH><TH><span style={{ paddingLeft: 24 }}>action</span></TH>
               </THead>
               {filteredNew.length === 0 ? <Empty msg="no pending applicants" /> :
                 filteredNew.map(a => (
-                 <TRow key={a.id} cols="200px 1fr 90px 56px 56px 60px 1fr" onClick={() => setPanelApp(a)}>
-                   <TName name={a.full_name} sub={a.city} />
+                  <TRow key={a.id} cols="200px 1fr 90px 56px 56px 60px 1fr" onClick={() => setPanelApp(a)}>
+                    <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <Badge wt={a.work_type} />
                     <DocLink url={a.cv_url} />
@@ -516,7 +515,7 @@ export default function AdminDashboard() {
         const onholdApps = apps.filter(a => a.status === "on hold");
         return (
           <div style={{ padding: "36px 40px" }}>
-            {ph("on hold", "under consideration — no decision yet")}
+            {ph("on hold", "under consideration — request missing documents or move to next stage")}
             <Tbl>
               <THead cols="200px 1fr 90px 56px 56px 1fr">
                 <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH><span style={{ paddingLeft: 24 }}>action</span></TH>
@@ -531,6 +530,14 @@ export default function AdminDashboard() {
                     <DocLink url={a.portfolio_url || a.portfolio_link} />
                     <div style={{ paddingLeft: 24 }} onClick={e => e.stopPropagation()}>
                       <ActionRow actions={[
+                        {
+                          label: "request document",
+                          onClick: () => {
+                            const link = `https://careers.jeddawear.com/reupload?id=${a.id}`;
+                            const body = `Hi%20${encodeURIComponent(a.full_name.split(" ")[0])}%2C%0A%0AThank%20you%20for%20applying%20to%20Jedda.%20We%E2%80%99ve%20reviewed%20your%20submission%20and%20would%20love%20to%20continue%20reviewing%20your%20work%20%E2%80%94%20however%2C%20we%20weren%E2%80%99t%20able%20to%20open%20your%20portfolio.%0A%0ACould%20you%20re-share%20it%20via%20the%20link%20below%3F%20You%20can%20upload%20a%20PDF%20or%20paste%20a%20link%20to%20Behance%2C%20Dribbble%2C%20Notion%2C%20or%20any%20accessible%20platform.%0A%0A${encodeURIComponent(link)}%0A%0ALooking%20forward%20to%20seeing%20your%20work.%0A%0A%E2%80%94%20Jedda%20Team`;
+                            window.location.href = `mailto:${a.email}?subject=Your%20Jedda%20Application%20%E2%80%94%20Portfolio%20Update%20Request&body=${body}`;
+                          }
+                        },
                         { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
                         { label: "reject", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
                       ]} />
