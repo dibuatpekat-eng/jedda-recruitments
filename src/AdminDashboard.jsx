@@ -445,23 +445,25 @@ export default function AdminDashboard() {
                 style={{ border: "none", borderBottom: "1px solid #e8e8e8", padding: "6px 0", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#1a1a1a", background: "transparent", outline: "none", width: 220 }} />
             </div>
             <Tbl>
-              <THead cols="180px 1fr 72px 44px 44px 1fr">
-                <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH>action</TH>
+              <THead cols="220px 1fr 80px 52px 52px 1fr">
+                <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH><span style={{ paddingLeft: 20 }}>action</span></TH>
               </THead>
               {filteredNew.length === 0 ? <Empty msg="no pending applicants" /> :
                 filteredNew.map(a => (
-                  <TRow key={a.id} cols="180px 1fr 72px 44px 44px 1fr" onClick={() => setPanelApp(a)}>
+                  <TRow key={a.id} cols="220px 1fr 80px 52px 52px 1fr" onClick={() => setPanelApp(a)}>
                     <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <Badge wt={a.work_type} />
                     <DocLink url={a.cv_url} />
                     <DocLink url={a.portfolio_url || a.portfolio_link} />
-                    <ActionRow actions={[
-                      { label: "on hold", onClick: () => { updateStatus(a.id, "on hold"); showToast("→ on hold"); } },
-                      { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
-                      { label: "priority", onClick: () => { updateStatus(a.id, "finalist", { is_priority: true }); showToast("→ finalist (priority)"); } },
-                      { label: "reject", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
-                    ]} />
+                    <div style={{ paddingLeft: 20 }} onClick={e => e.stopPropagation()}>
+                      <ActionRow actions={[
+                        { label: "on hold", onClick: () => { updateStatus(a.id, "on hold"); showToast("→ on hold"); } },
+                        { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
+                        { label: "priority", onClick: () => { updateStatus(a.id, "finalist", { is_priority: true }); showToast("→ finalist (priority)"); } },
+                        { label: "reject", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
+                      ]} />
+                    </div>
                   </TRow>
                 ))
               }
@@ -477,21 +479,23 @@ export default function AdminDashboard() {
           <div style={{ padding: "36px 40px" }}>
             {ph("on hold", "under consideration — no decision yet")}
             <Tbl>
-              <THead cols="1.8fr 1.4fr 80px 50px 50px 1fr">
-                <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH>action</TH>
+              <THead cols="220px 1fr 80px 52px 52px 1fr">
+                <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH><span style={{ paddingLeft: 20 }}>action</span></TH>
               </THead>
               {onholdApps.length === 0 ? <Empty msg="nothing on hold" /> :
                 onholdApps.map(a => (
-                  <TRow key={a.id} cols="1.8fr 1.4fr 80px 50px 50px 1fr" onClick={() => setPanelApp(a)}>
+                  <TRow key={a.id} cols="220px 1fr 80px 52px 52px 1fr" onClick={() => setPanelApp(a)}>
                     <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <Badge wt={a.work_type} />
                     <DocLink url={a.cv_url} />
                     <DocLink url={a.portfolio_url || a.portfolio_link} />
-                    <ActionRow actions={[
-                      { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
-                      { label: "reject", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
-                    ]} />
+                    <div style={{ paddingLeft: 20 }} onClick={e => e.stopPropagation()}>
+                      <ActionRow actions={[
+                        { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
+                        { label: "reject", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
+                      ]} />
+                    </div>
                   </TRow>
                 ))
               }
