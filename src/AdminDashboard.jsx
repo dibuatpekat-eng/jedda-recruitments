@@ -483,17 +483,18 @@ export default function AdminDashboard() {
                 style={{ border: "none", borderBottom: "1px solid #e8e8e8", padding: "6px 0", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#1a1a1a", background: "transparent", outline: "none", width: 220 }} />
             </div>
             <Tbl>
-              <THead cols="200px 1fr 90px 56px 56px 1fr">
-                <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH><span style={{ paddingLeft: 24 }}>action</span></TH>
+              <THead cols="200px 1fr 90px 56px 56px 60px 1fr">
+                 <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH>bandung</TH><TH><span style={{ paddingLeft: 24 }}>action</span></TH>
               </THead>
               {filteredNew.length === 0 ? <Empty msg="no pending applicants" /> :
                 filteredNew.map(a => (
-                  <TRow key={a.id} cols="200px 1fr 90px 56px 56px 1fr" onClick={() => setPanelApp(a)}>
-                    <TName name={a.full_name} sub={a.city} />
+                 <TRow key={a.id} cols="200px 1fr 90px 56px 56px 60px 1fr" onClick={() => setPanelApp(a)}>
+                   <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <Badge wt={a.work_type} />
                     <DocLink url={a.cv_url} />
                     <DocLink url={a.portfolio_url || a.portfolio_link} />
+                    <span style={{ fontSize: 11, fontWeight: 200, color: a.bandung === "yes" ? "#6a9e76" : "#ccc" }}>{a.bandung || "—"}</span>
                     <div style={{ paddingLeft: 24 }} onClick={e => e.stopPropagation()}>
                       <ActionRow actions={[
                         { label: "on hold", onClick: () => { updateStatus(a.id, "on hold"); showToast("→ on hold"); } },
