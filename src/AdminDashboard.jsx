@@ -403,7 +403,7 @@ export default function AdminDashboard() {
         return (
           <div style={{ padding: "36px 40px" }}>
             {ph("all applicants", "status overview — click a row to view details")}
-            <Stats cols={4} items={[["total", apps.length], ["pending review", counts.new], ["in progress", inPipeline], ["rejected", counts.rejected]]} />
+            <Stats cols={4} items={[["total", apps.length], ["new", counts.new], ["in pipeline", inPipeline], ["with portfolio", apps.filter(a => a.portfolio_url || a.portfolio_link).length]]} />
             <Tbl>
               <THead cols="1.8fr 1.4fr 130px 110px">
                 <TH>name</TH><TH>position</TH><TH>availability</TH><TH>status</TH>
@@ -423,29 +423,34 @@ export default function AdminDashboard() {
         );
       }
 
-      // ── NEW ───────────────────────────────────────────────
+      // ── PENDING REVIEW ────────────────────────────────────
       case "new": {
         return (
           <div style={{ padding: "36px 40px" }}>
-            {ph("new", "not yet reviewed — open cv or portfolio first, then take action")}
-            <Stats cols={3} items={[["total new", newApps.length], ["from bandung", newApps.filter(a => a.city?.toLowerCase().includes("bandung")).length], ["with portfolio", newApps.filter(a => a.portfolio_url || a.portfolio_link).length]]} />
+            {ph("pending review", "not yet reviewed — open cv or portfolio first, then take action")}
+            <Stats cols={3} items={[["total", newApps.length], ["from bandung", newApps.filter(a => a.city?.toLowerCase().includes("bandung")).length], ["with portfolio", newApps.filter(a => a.portfolio_url || a.portfolio_link).length]]} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ display: "flex", gap: 4 }}>
-                {["all","design","creative","retail"].map(f => (
-                  <button key={f} className={`f-btn${newPosFilter === f ? " f-active" : ""}`} onClick={() => setNewPosFilter(f)}
-                    style={{ fontSize: 10, fontWeight: 300, color: newPosFilter === f ? "#fff" : "#bbb", background: newPosFilter === f ? "#1a1a1a" : "none", border: "none", cursor: "pointer", fontFamily: sans, padding: "5px 12px", borderRadius: 20, transition: "all 0.15s" }}>{f}</button>
-                ))}
+                {["all","design","creative","retail"].map(f => {
+                  const cnt = f === "all" ? newApps.length : newApps.filter(a => getDivision(a.position) === f).length;
+                  return (
+                    <button key={f} className={`f-btn${newPosFilter === f ? " f-active" : ""}`} onClick={() => setNewPosFilter(f)}
+                      style={{ fontSize: 10, fontWeight: 300, color: newPosFilter === f ? "#fff" : "#bbb", background: newPosFilter === f ? "#1a1a1a" : "none", border: "none", cursor: "pointer", fontFamily: sans, padding: "5px 12px", borderRadius: 20, transition: "all 0.15s" }}>
+                      {`${f} (${cnt})`}
+                    </button>
+                  );
+                })}
               </div>
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="search name, position, city..."
                 style={{ border: "none", borderBottom: "1px solid #e8e8e8", padding: "6px 0", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#1a1a1a", background: "transparent", outline: "none", width: 220 }} />
             </div>
             <Tbl>
-              <THead cols="1.8fr 1.4fr 80px 50px 50px 1fr">
+              <THead cols="180px 1fr 72px 44px 44px 1fr">
                 <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH>action</TH>
               </THead>
-              {filteredNew.length === 0 ? <Empty msg="no new applicants" /> :
+              {filteredNew.length === 0 ? <Empty msg="no pending applicants" /> :
                 filteredNew.map(a => (
-                  <TRow key={a.id} cols="1.8fr 1.4fr 80px 50px 50px 1fr" onClick={() => setPanelApp(a)}>
+                  <TRow key={a.id} cols="180px 1fr 72px 44px 44px 1fr" onClick={() => setPanelApp(a)}>
                     <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <Badge wt={a.work_type} />
@@ -702,7 +707,7 @@ export default function AdminDashboard() {
 
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>review</div>
-        <SbItem id="new" label="new" />
+        <SbItem id="new" label="pending review" />
         <SbItem id="onhold" label="on hold" />
 
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
