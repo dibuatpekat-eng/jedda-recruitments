@@ -61,7 +61,7 @@ input:focus{border-color:#1a1a1a!important;outline:none}
 // ─── sub-components ────────────────────────────────────────
 function Badge({ wt }) {
   const t = typeTag(wt);
-  return <span style={{ fontSize: 9, fontWeight: 300, padding: "3px 8px", background: t.bg, color: t.color, display: "inline-block" }}>{t.label}</span>;
+  return <div style={{ display: "flex" }}><span style={{ fontSize: 9, fontWeight: 300, padding: "3px 8px", background: t.bg, color: t.color }}>{t.label}</span></div>;
 }
 function StatusBadge({ status }) {
   const s = statusStyle(status);
