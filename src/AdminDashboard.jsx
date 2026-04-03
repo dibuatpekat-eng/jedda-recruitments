@@ -442,12 +442,12 @@ export default function AdminDashboard() {
             {ph("all applicants", "status overview — click a row to view details")}
             <Stats cols={4} items={[["total", apps.length], ["pending review", counts.new], ["in progress", inPipeline], ["rejected", counts.rejected]]} />
             <Tbl>
-              <THead cols="1fr 1.2fr 160px 110px">
+              <THead cols="1fr 1fr 1fr 110px">
                 <TH>name</TH><TH>position</TH><TH>availability</TH><TH>status</TH>
               </THead>
               {loading ? <Empty msg="loading..." /> : apps.length === 0 ? <Empty msg="no applications yet" /> :
                 apps.map(a => (
-                  <TRow key={a.id} cols="1fr 1.2fr 160px 110px" onClick={() => setPanelApp(a)}>
+                  <TRow key={a.id} cols="1fr 1fr 1fr 110px" onClick={() => setPanelApp(a)}>
                     <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <span style={{ fontSize: 11, fontWeight: 200, color: "#999" }}>{a.availability}</span>
@@ -548,12 +548,12 @@ export default function AdminDashboard() {
           <div style={{ padding: "36px 40px" }}>
             {ph("shortlisted", "passed initial review — send test link to proceed")}
             <Tbl>
-              <THead cols="1fr 1fr 100px 1fr">
+              <THead cols="1fr 1fr 1fr 1fr">
                 <TH>name</TH><TH>position</TH><TH>type</TH><TH>action</TH>
               </THead>
               {slApps.length === 0 ? <Empty msg="no one shortlisted yet" /> :
                 slApps.map(a => (
-                  <TRow key={a.id} cols="1fr 1fr 100px 1fr" onClick={() => setPanelApp(a)}>
+                  <TRow key={a.id} cols="1fr 1fr 1fr 1fr" onClick={() => setPanelApp(a)}>
                     <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <Badge wt={a.work_type} />
