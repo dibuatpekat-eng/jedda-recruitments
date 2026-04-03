@@ -163,11 +163,12 @@ function DetailPanel({ app, onClose, onMoveBack }) {
   if (!app) return null;
   const tag = typeTag(app.work_type);
   const fields = [
-    ["position", app.position], ["work type", app.work_type],
-    ["phone", app.phone], ["email", app.email],
-    ["city", app.city], ["availability", app.availability],
-    ["why jedda", app.why_jedda],
-  ].filter(([, v]) => v);
+  ["position", app.position], ["work type", app.work_type],
+  ["phone", app.phone], ["email", app.email],
+  ["city", app.city], ["open to bandung", app.bandung],
+  ["availability", app.availability],
+  ["why jedda", app.why_jedda],
+].filter(([, v]) => v);
 
   const moveBackOptions = {
     "shortlisted": [
