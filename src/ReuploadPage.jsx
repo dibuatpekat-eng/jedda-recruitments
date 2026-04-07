@@ -115,6 +115,9 @@ export default function ReuploadPage() {
       <img src="/logo.png" alt="Jedda" style={{ height: 16, width: "auto", display: "block", margin: "0 auto 32px" }} />
       <div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto 28px" }} />
 
+      <p style={{ fontSize: 12, fontWeight: 200, color: "#999", textAlign: "center", marginBottom: 36, lineHeight: 1.8 }}>
+  please re-share your portfolio below. </p>
+
       {/* file upload */}
       <p style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>
         portfolio <span style={{ textTransform: "none", letterSpacing: 0 }}>(pdf, max 5mb)</span>
