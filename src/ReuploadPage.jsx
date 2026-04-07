@@ -7,7 +7,6 @@ export default function ReuploadPage() {
   const [status, setStatus] = useState("idle"); // idle | uploading | done | notfound
   const [portfolioLink, setPortfolioLink] = useState("");
   const [fileName, setFileName] = useState("");
-  const [appName, setAppName] = useState("");
   const [err, setErr] = useState("");
   const fileRef = useRef(null);
   const fileObj = useRef(null);
@@ -33,7 +32,6 @@ export default function ReuploadPage() {
     supabase.from("applications").select("full_name").eq("id", id).single()
       .then(({ data, error }) => {
         if (error || !data) setStatus("notfound");
-        else setAppName(data.full_name.split(" ")[0]);
       });
 
     return () => document.head.removeChild(st);
@@ -104,9 +102,9 @@ export default function ReuploadPage() {
     <Shell>
       <img src="/logo.png" alt="Jedda" style={{ height: 16, width: "auto", display: "block", margin: "0 auto 32px" }} />
       <div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto 28px" }} />
-      <p style={{ fontSize: 14, fontWeight: 300, textAlign: "center" }}>thank you, {appName}.</p>
+      <p style={{ fontSize: 14, fontWeight: 300, textAlign: "center" }}>thank you for your submission.</p>
       <p style={{ fontSize: 12, fontWeight: 200, color: "#999", marginTop: 10, textAlign: "center", lineHeight: 1.8 }}>
-        we've received your portfolio<br />and will be in touch soon.
+        we'll review it and get back to you if needed.
       </p>
     </Shell>
   );
@@ -116,11 +114,6 @@ export default function ReuploadPage() {
     <Shell>
       <img src="/logo.png" alt="Jedda" style={{ height: 16, width: "auto", display: "block", margin: "0 auto 32px" }} />
       <div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto 28px" }} />
-      {appName && (
-        <p style={{ fontSize: 12, fontWeight: 200, color: "#999", textAlign: "center", marginBottom: 36, lineHeight: 1.8 }}>
-          hi {appName} — please re-share your portfolio below.
-        </p>
-      )}
 
       {/* file upload */}
       <p style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>
