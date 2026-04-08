@@ -57,6 +57,14 @@ input:focus{border-color:#1a1a1a!important;outline:none}
 .f-btn:hover:not(.f-active){color:#1a1a1a}
 `;
 
+// ─── Gmail helper ───────────────────────────────────────────
+function openRequestDocEmail(a) {
+  window.open(
+    `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=Your%20Jedda%20Application%20%E2%80%94%20Portfolio%20Update%20Request&body=Hi%20${encodeURIComponent(a.full_name.split(" ")[0])}%2C%0A%0AWe%E2%80%99re%20currently%20reviewing%20portfolios%20from%20our%20applicants%20%E2%80%94%20however%2C%20we%20weren%E2%80%99t%20able%20to%20open%20yours.%0A%0ACould%20you%20re-share%20it%20via%20the%20link%20below%3F%20You%20can%20upload%20a%20PDF%20or%20paste%20a%20link%20to%20Behance%2C%20Dribbble%2C%20Notion%2C%20or%20Google%20Drive.%0A%0A${encodeURIComponent("https://careers.jeddawear.com/reupload?id="+a.id)}%0A%0APlease%20make%20sure%20the%20link%20is%20accessible%20and%20set%20to%20public%20if%20you%E2%80%99re%20sharing%20via%20Drive%20or%20any%20cloud%20platform.%0A%0A%E2%80%94%20Jedda`,
+    "_blank"
+  );
+}
+
 // ─── Division Filter Bar ────────────────────────────────────
 function DivFilter({ allApps, active, onChange }) {
   return (
@@ -91,8 +99,6 @@ function ArBtn({ label, onClick, cls }) {
     base: { fontSize: 10, fontWeight: 300, background: "none", border: "none", cursor: "pointer", fontFamily: sans, padding: 0, letterSpacing: 0.3, whiteSpace: "nowrap", color: "#aaa" },
     primary: { color: "#1a1a1a" },
     danger: { color: "#c47a5a" },
-    ghost: { color: "#999", borderBottom: "1px solid #ddd", paddingBottom: 2 },
-    standalone: { color: "#1a1a1a", borderBottom: "1px solid #1a1a1a", paddingBottom: 2 },
   };
   return (
     <button className={`ar-btn ar-${cls || "base"}`} onClick={e => { e.stopPropagation(); onClick(); }} style={{ ...styles.base, ...(styles[cls] || {}) }}>{label}</button>
@@ -153,6 +159,36 @@ function Stats({ cols = 4, items }) {
   );
 }
 
+// ─── Request Doc Action ─────────────────────────────────────
+// First click: open Gmail + mark requested. After that: show "requested ✓ · send again" where send again re-opens Gmail without changing state.
+function RequestDocAction({ app, updateStatus, showToast }) {
+  if (!app.document_requested) {
+    return (
+      <ArBtn
+        label="request document"
+        onClick={() => {
+          openRequestDocEmail(app);
+          updateStatus(app.id, "on hold", { document_requested: true });
+          showToast("document requested ✓");
+        }}
+      />
+    );
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+      <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", whiteSpace: "nowrap" }}>requested ✓</span>
+      <ArDivider />
+      <ArBtn
+        label="send again"
+        onClick={() => {
+          openRequestDocEmail(app);
+          showToast("email reopened ✓");
+        }}
+      />
+    </div>
+  );
+}
+
 // ─── Detail Panel ──────────────────────────────────────────
 function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
   if (!app) return null;
@@ -171,8 +207,6 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
     "finalist": [{ label: "← testing", status: "testing" }, { label: "← shortlisted", status: "shortlisted" }],
   };
   const moveOpts = moveBackOptions[app.status] || [];
-
-  // statuses that can be referred out
   const canReferOut = ["new", "on hold", "shortlisted", "testing", "finalist"].includes(app.status);
 
   return (
@@ -203,8 +237,6 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
               : <span style={{ fontSize: 11, fontWeight: 200, color: "#ccc" }}>no portfolio uploaded</span>
           }
         </div>
-
-        {/* move back */}
         {moveOpts.length > 0 && (
           <>
             <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", margin: "28px 0 12px" }}>change status</p>
@@ -223,8 +255,6 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
             </div>
           </>
         )}
-
-        {/* refer out */}
         {canReferOut && (
           <>
             <div style={{ width: "100%", height: 1, background: "#f5f5f5", margin: "28px 0" }} />
@@ -349,20 +379,15 @@ function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
               <DocLink url={a.portfolio_url || a.portfolio_link} />
               <div style={{ paddingLeft: 24 }} onClick={e => e.stopPropagation()}>
                 <ActionRow actions={[
-                  ...(a.document_requested
-                    ? [{ label: "requested ✓", onClick: () => {} }]
-                    : [{
-                        label: "request document",
-                        onClick: () => {
-                          window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=Your%20Jedda%20Application%20%E2%80%94%20Portfolio%20Update%20Request&body=Hi%20${encodeURIComponent(a.full_name.split(" ")[0])}%2C%0A%0AWe%E2%80%99re%20currently%20reviewing%20portfolios%20from%20our%20applicants%20%E2%80%94%20however%2C%20we%20weren%E2%80%99t%20able%20to%20open%20yours.%0A%0ACould%20you%20re-share%20it%20via%20the%20link%20below%3F%20You%20can%20upload%20a%20PDF%20or%20paste%20a%20link%20to%20Behance%2C%20Dribbble%2C%20Notion%2C%20or%20Google%20Drive.%0A%0A${encodeURIComponent("https://careers.jeddawear.com/reupload?id="+a.id)}%0A%0APlease%20make%20sure%20the%20link%20is%20accessible%20and%20set%20to%20public%20if%20you%E2%80%99re%20sharing%20via%20Drive%20or%20any%20cloud%20platform.%0A%0A%E2%80%94%20Jedda`, "_blank");
-                          updateStatus(a.id, "on hold", { document_requested: true });
-                          showToast("document requested ✓");
-                        }
-                      }]
-                  ),
-                  { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
-                  { label: "reject", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
+                  // request doc action is handled separately due to its two-state logic
                 ]} />
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <RequestDocAction app={a} updateStatus={updateStatus} showToast={showToast} />
+                  <ArDivider />
+                  <ArBtn label="shortlisted" cls="primary" onClick={() => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); }} />
+                  <ArDivider />
+                  <ArBtn label="reject" cls="danger" onClick={() => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); }} />
+                </div>
               </div>
             </TRow>
           ))
@@ -814,39 +839,31 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: sans, color: "#1a1a1a" }}>
-
-      {/* SIDEBAR */}
       <div style={{ width: 196, flexShrink: 0, background: "#fff", borderRight: "1px solid #f0f0f0", display: "flex", flexDirection: "column", padding: "28px 0 20px", overflowY: "auto" }}>
         <div style={{ fontSize: 10, fontWeight: 400, letterSpacing: 4, color: "#1a1a1a", padding: "0 22px 28px", textTransform: "uppercase" }}>jedda</div>
-
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>overview</div>
         <SbItem id="overview" label="all applicants" />
-
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>review</div>
         <SbItem id="new" label="pending review" />
         <SbItem id="onhold" label="on hold" />
         <SbItem id="referredout" label="referred out" />
-
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>pipeline</div>
         <SbItem id="shortlisted" label="shortlisted" />
         <SbItem id="testing" label="testing" />
         <SbItem id="finalist" label="finalists" />
         <SbItem id="interview" label="interview" />
-
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>closed</div>
         <SbItem id="thefinalteam" label="the final team" />
         <SbItem id="rejected" label="rejected" />
       </div>
 
-      {/* MAIN */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         {renderPage()}
       </div>
 
-      {/* MODALS & PANEL */}
       {panelApp && (
         <DetailPanel
           app={panelApp}
