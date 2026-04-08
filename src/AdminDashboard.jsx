@@ -33,6 +33,7 @@ function statusStyle(s = "") {
     "rejected":       { bg: "#fcebeb",  color: "#a32d2d" },
     "the final team": { bg: "#1a1a1a",  color: "#fff"    },
     "withdrawn":      { bg: "#f5f5f5",  color: "#aaa"    },
+    "referred out":   { bg: "#f0f0f5",  color: "#7a6aaa" },
   };
   return map[s] || { bg: "#f5f5f5", color: "#aaa" };
 }
@@ -153,7 +154,7 @@ function Stats({ cols = 4, items }) {
 }
 
 // ─── Detail Panel ──────────────────────────────────────────
-function DetailPanel({ app, onClose, onMoveBack }) {
+function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
   if (!app) return null;
   const tag = typeTag(app.work_type);
   const fields = [
@@ -170,6 +171,10 @@ function DetailPanel({ app, onClose, onMoveBack }) {
     "finalist": [{ label: "← testing", status: "testing" }, { label: "← shortlisted", status: "shortlisted" }],
   };
   const moveOpts = moveBackOptions[app.status] || [];
+
+  // statuses that can be referred out
+  const canReferOut = ["new", "on hold", "shortlisted", "testing", "finalist"].includes(app.status);
+
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.1)", zIndex: 300, display: "flex", justifyContent: "flex-end" }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 400, height: "100%", background: "#fff", overflowY: "auto", padding: "36px 28px", borderLeft: "1px solid #f0f0f0", fontFamily: sans }}>
@@ -198,6 +203,8 @@ function DetailPanel({ app, onClose, onMoveBack }) {
               : <span style={{ fontSize: 11, fontWeight: 200, color: "#ccc" }}>no portfolio uploaded</span>
           }
         </div>
+
+        {/* move back */}
         {moveOpts.length > 0 && (
           <>
             <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", margin: "28px 0 12px" }}>change status</p>
@@ -214,6 +221,22 @@ function DetailPanel({ app, onClose, onMoveBack }) {
                 </span>
               ))}
             </div>
+          </>
+        )}
+
+        {/* refer out */}
+        {canReferOut && (
+          <>
+            <div style={{ width: "100%", height: 1, background: "#f5f5f5", margin: "28px 0" }} />
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>refer out</p>
+            <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb", lineHeight: 1.7, marginBottom: 14 }}>
+              not the right fit for jedda right now — but worth passing on to another company.
+            </p>
+            <button onClick={() => { onReferOut(app.id); onClose(); }}
+              style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#7a6aaa", cursor: "pointer", padding: 0, letterSpacing: 0.3, borderBottom: "1px solid #c8c0e8", paddingBottom: 2, transition: "opacity 0.15s" }}
+              onMouseOver={e => e.currentTarget.style.opacity = "0.5"}
+              onMouseOut={e => e.currentTarget.style.opacity = "1"}
+            >move to referred out →</button>
           </>
         )}
       </div>
@@ -299,7 +322,7 @@ function TestingDetail({ app, onBack, onPass, onFail }) {
   );
 }
 
-// ─── Page components (each owns its own filter state) ───────
+// ─── Page components ────────────────────────────────────────
 
 function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
   const [div, setDiv] = useState("all");
@@ -569,6 +592,36 @@ function RejectedPage({ apps, updateStatus, showToast, setPanelApp }) {
   );
 }
 
+function ReferredOutPage({ apps, setPanelApp }) {
+  const [div, setDiv] = useState("all");
+  const all = apps.filter(a => a.status === "referred out");
+  const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
+  return (
+    <div style={{ padding: "36px 40px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>referred out</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>not the right fit for jedda — passed on to another company</p>
+      </div>
+      <DivFilter allApps={all} active={div} onChange={setDiv} />
+      <Tbl>
+        <THead cols="1.8fr 1.4fr 80px 1fr">
+          <TH>name</TH><TH>position</TH><TH>type</TH><TH>city</TH>
+        </THead>
+        {filtered.length === 0 ? <Empty msg="no one referred out yet" /> :
+          filtered.map(a => (
+            <TRow key={a.id} cols="1.8fr 1.4fr 80px 1fr" onClick={() => setPanelApp(a)}>
+              <TName name={a.full_name} sub={a.email} />
+              <TPos>{a.position?.toLowerCase()}</TPos>
+              <Badge wt={a.work_type} />
+              <span style={{ fontSize: 11, fontWeight: 200, color: "#999" }}>{a.city}</span>
+            </TRow>
+          ))
+        }
+      </Tbl>
+    </div>
+  );
+}
+
 // ─── MAIN DASHBOARD ─────────────────────────────────────────
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false);
@@ -622,6 +675,7 @@ export default function AdminDashboard() {
     overview: apps.length,
     new: apps.filter(a => a.status === "new").length,
     onhold: apps.filter(a => a.status === "on hold").length,
+    referredout: apps.filter(a => a.status === "referred out").length,
     shortlisted: apps.filter(a => a.status === "shortlisted").length,
     testing: apps.filter(a => a.status === "testing").length,
     finalist: apps.filter(a => a.status === "finalist").length,
@@ -746,44 +800,61 @@ export default function AdminDashboard() {
         );
       }
 
-      case "onhold":      return <OnHoldPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
-      case "shortlisted": return <ShortlistedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
-      case "testing":     return <TestingPage apps={apps} setTestingApp={setTestingApp} />;
-      case "finalist":    return <FinalistPage apps={apps} setInterviewApp={setInterviewApp} setPanelApp={setPanelApp} />;
-      case "interview":   return <InterviewPage apps={apps} updateStatus={updateStatus} showToast={showToast} />;
+      case "onhold":       return <OnHoldPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
+      case "referredout":  return <ReferredOutPage apps={apps} setPanelApp={setPanelApp} />;
+      case "shortlisted":  return <ShortlistedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
+      case "testing":      return <TestingPage apps={apps} setTestingApp={setTestingApp} />;
+      case "finalist":     return <FinalistPage apps={apps} setInterviewApp={setInterviewApp} setPanelApp={setPanelApp} />;
+      case "interview":    return <InterviewPage apps={apps} updateStatus={updateStatus} showToast={showToast} />;
       case "thefinalteam": return <FinalTeamPage apps={apps} setPanelApp={setPanelApp} setAcceptanceApp={setAcceptanceApp} />;
-      case "rejected":    return <RejectedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
+      case "rejected":     return <RejectedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
       default: return null;
     }
   };
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: sans, color: "#1a1a1a" }}>
+
+      {/* SIDEBAR */}
       <div style={{ width: 196, flexShrink: 0, background: "#fff", borderRight: "1px solid #f0f0f0", display: "flex", flexDirection: "column", padding: "28px 0 20px", overflowY: "auto" }}>
         <div style={{ fontSize: 10, fontWeight: 400, letterSpacing: 4, color: "#1a1a1a", padding: "0 22px 28px", textTransform: "uppercase" }}>jedda</div>
+
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>overview</div>
         <SbItem id="overview" label="all applicants" />
+
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>review</div>
         <SbItem id="new" label="pending review" />
         <SbItem id="onhold" label="on hold" />
+        <SbItem id="referredout" label="referred out" />
+
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>pipeline</div>
         <SbItem id="shortlisted" label="shortlisted" />
         <SbItem id="testing" label="testing" />
         <SbItem id="finalist" label="finalists" />
         <SbItem id="interview" label="interview" />
+
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>closed</div>
         <SbItem id="thefinalteam" label="the final team" />
         <SbItem id="rejected" label="rejected" />
       </div>
 
+      {/* MAIN */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         {renderPage()}
       </div>
 
-      {panelApp && <DetailPanel app={panelApp} onClose={() => setPanelApp(null)} onMoveBack={async (id, status) => { await updateStatus(id, status); showToast("→ " + status); setPanelApp(null); }} />}
+      {/* MODALS & PANEL */}
+      {panelApp && (
+        <DetailPanel
+          app={panelApp}
+          onClose={() => setPanelApp(null)}
+          onMoveBack={async (id, status) => { await updateStatus(id, status); showToast("→ " + status); setPanelApp(null); }}
+          onReferOut={async (id) => { await updateStatus(id, "referred out"); showToast("→ referred out"); }}
+        />
+      )}
 
       {interviewApp && (
         <InterviewModal app={interviewApp} onClose={() => setInterviewApp(null)}
