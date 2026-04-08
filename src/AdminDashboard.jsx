@@ -317,6 +317,54 @@ function TestingDetail({ app, onBack, onPass, onFail }) {
   );
 }
 
+// ─── Shortlisted Page (extracted to support useState) ───────
+function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
+  const [slDivFilter, setSlDivFilter] = useState("all");
+  const slApps = apps.filter(a => a.status === "shortlisted");
+  const filteredSl = slApps.filter(a =>
+    slDivFilter === "all" || getDivision(a.position) === slDivFilter
+  );
+  return (
+    <div style={{ padding: "36px 40px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>shortlisted</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>passed initial review — send test link to proceed</p>
+      </div>
+      <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+        {["all", "design", "creative", "retail"].map(f => {
+          const cnt = f === "all" ? slApps.length : slApps.filter(a => getDivision(a.position) === f).length;
+          return (
+            <button key={f} className={`f-btn${slDivFilter === f ? " f-active" : ""}`} onClick={() => setSlDivFilter(f)}
+              style={{ fontSize: 10, fontWeight: 300, color: slDivFilter === f ? "#fff" : "#bbb", background: slDivFilter === f ? "#1a1a1a" : "none", border: "none", cursor: "pointer", fontFamily: sans, padding: "5px 12px", borderRadius: 20, transition: "all 0.15s" }}>
+              {`${f} (${cnt})`}
+            </button>
+          );
+        })}
+      </div>
+      <Tbl>
+        <THead cols="1fr 1fr 1fr 1fr">
+          <TH>name</TH><TH>position</TH><TH>type</TH><TH>action</TH>
+        </THead>
+        {filteredSl.length === 0 ? <Empty msg="no one shortlisted yet" /> :
+          filteredSl.map(a => (
+            <TRow key={a.id} cols="1fr 1fr 1fr 1fr" onClick={() => setPanelApp(a)}>
+              <TName name={a.full_name} sub={a.city} />
+              <TPos>{a.position?.toLowerCase()}</TPos>
+              <Badge wt={a.work_type} />
+              <div onClick={e => e.stopPropagation()}>
+                <button onClick={() => { updateStatus(a.id, "testing"); showToast("test link sent ✓"); }}
+                  style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
+                  send test link →
+                </button>
+              </div>
+            </TRow>
+          ))
+        }
+      </Tbl>
+    </div>
+  );
+}
+
 // ─── MAIN DASHBOARD ─────────────────────────────────────────
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false);
@@ -554,34 +602,8 @@ export default function AdminDashboard() {
       }
 
       // ── SHORTLISTED ───────────────────────────────────────
-      case "shortlisted": {
-        const slApps = apps.filter(a => a.status === "shortlisted");
-        return (
-          <div style={{ padding: "36px 40px" }}>
-            {ph("shortlisted", "passed initial review — send test link to proceed")}
-            <Tbl>
-              <THead cols="1fr 1fr 1fr 1fr">
-                <TH>name</TH><TH>position</TH><TH>type</TH><TH>action</TH>
-              </THead>
-              {slApps.length === 0 ? <Empty msg="no one shortlisted yet" /> :
-                slApps.map(a => (
-                  <TRow key={a.id} cols="1fr 1fr 1fr 1fr" onClick={() => setPanelApp(a)}>
-                    <TName name={a.full_name} sub={a.city} />
-                    <TPos>{a.position?.toLowerCase()}</TPos>
-                    <Badge wt={a.work_type} />
-                    <div onClick={e => e.stopPropagation()}>
-                      <button onClick={() => { updateStatus(a.id, "testing"); showToast("test link sent ✓"); }}
-                        style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
-                        send test link →
-                      </button>
-                    </div>
-                  </TRow>
-                ))
-              }
-            </Tbl>
-          </div>
-        );
-      }
+      case "shortlisted":
+        return <ShortlistedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
 
       // ── TESTING ───────────────────────────────────────────
       case "testing": {
