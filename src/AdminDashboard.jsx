@@ -37,7 +37,6 @@ function statusStyle(s = "") {
   return map[s] || { bg: "#f5f5f5", color: "#aaa" };
 }
 
-// ─── css injected once ─────────────────────────────────────
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -53,10 +52,26 @@ input:focus{border-color:#1a1a1a!important;outline:none}
 .ar-btn:hover{opacity:0.5}
 .ar-primary:hover{opacity:0.4!important}
 .ar-danger:hover{color:#8b2a00!important}
-.ar-ghost:hover{color:#1a1a1a!important;border-color:#999!important;opacity:1!important}
 .tc-card:hover{border-color:#ccc!important}
 .f-btn:hover:not(.f-active){color:#1a1a1a}
 `;
+
+// ─── Division Filter Bar ────────────────────────────────────
+function DivFilter({ allApps, active, onChange }) {
+  return (
+    <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+      {["all", "design", "creative", "retail"].map(f => {
+        const cnt = f === "all" ? allApps.length : allApps.filter(a => getDivision(a.position) === f).length;
+        return (
+          <button key={f} className={`f-btn${active === f ? " f-active" : ""}`} onClick={() => onChange(f)}
+            style={{ fontSize: 10, fontWeight: 300, color: active === f ? "#fff" : "#bbb", background: active === f ? "#1a1a1a" : "none", border: "none", cursor: "pointer", fontFamily: sans, padding: "5px 12px", borderRadius: 20, transition: "all 0.15s" }}>
+            {`${f} (${cnt})`}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 // ─── sub-components ────────────────────────────────────────
 function Badge({ wt }) {
@@ -79,11 +94,7 @@ function ArBtn({ label, onClick, cls }) {
     standalone: { color: "#1a1a1a", borderBottom: "1px solid #1a1a1a", paddingBottom: 2 },
   };
   return (
-    <button
-      className={`ar-btn ar-${cls || "base"}`}
-      onClick={e => { e.stopPropagation(); onClick(); }}
-      style={{ ...styles.base, ...(styles[cls] || {}) }}
-    >{label}</button>
+    <button className={`ar-btn ar-${cls || "base"}`} onClick={e => { e.stopPropagation(); onClick(); }} style={{ ...styles.base, ...(styles[cls] || {}) }}>{label}</button>
   );
 }
 function ActionRow({ actions }) {
@@ -98,34 +109,19 @@ function ActionRow({ actions }) {
     </div>
   );
 }
-
-// ─── TH / TR helpers ───────────────────────────────────────
 function THead({ cols, children }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "9px 18px", background: "#fafafa", borderBottom: "1px solid #f0f0f0" }}>
-      {children}
-    </div>
-  );
+  return <div style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "9px 18px", background: "#fafafa", borderBottom: "1px solid #f0f0f0" }}>{children}</div>;
 }
 function TH({ children }) {
   return <span style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#bbb", textTransform: "uppercase" }}>{children}</span>;
 }
 function TRow({ cols, onClick, children }) {
   return (
-    <div
-      className="tr-row"
-      onClick={onClick}
-      style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "13px 18px", borderBottom: "1px solid #f5f5f5", alignItems: "center", cursor: "pointer", transition: "background 0.1s" }}
-    >{children}</div>
+    <div className="tr-row" onClick={onClick} style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "13px 18px", borderBottom: "1px solid #f5f5f5", alignItems: "center", cursor: "pointer", transition: "background 0.1s" }}>{children}</div>
   );
 }
 function TName({ name, sub }) {
-  return (
-    <div>
-      <p style={{ fontSize: 13, fontWeight: 400, marginBottom: 2 }}>{name}</p>
-      <p style={{ fontSize: 10, fontWeight: 200, color: "#aaa" }}>{sub}</p>
-    </div>
-  );
+  return <div><p style={{ fontSize: 13, fontWeight: 400, marginBottom: 2 }}>{name}</p><p style={{ fontSize: 10, fontWeight: 200, color: "#aaa" }}>{sub}</p></div>;
 }
 function TPos({ children }) {
   return <p style={{ fontSize: 12, fontWeight: 300, color: "#555" }}>{children}</p>;
@@ -136,15 +132,13 @@ function Tbl({ children }) {
 function Empty({ msg = "nothing here yet" }) {
   return <div style={{ padding: "56px 20px", textAlign: "center", fontSize: 11, fontWeight: 200, color: "#ccc", letterSpacing: 2 }}>{msg}</div>;
 }
-function DocLink({ url, label }) {
+function DocLink({ url }) {
   if (!url) return <span style={{ fontSize: 11, fontWeight: 200, color: "#ccc" }}>—</span>;
   return <a href={url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11, fontWeight: 300, color: "#999", textDecoration: "none" }}>open →</a>;
 }
 function SentLabel({ text }) {
   return <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb" }}>{text}</span>;
 }
-
-// ─── Stat cards ────────────────────────────────────────────
 function Stats({ cols = 4, items }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 8, marginBottom: 20 }}>
@@ -169,25 +163,13 @@ function DetailPanel({ app, onClose, onMoveBack }) {
     ["availability", app.availability],
     ["why jedda", app.why_jedda],
   ].filter(([, v]) => v);
-
   const moveBackOptions = {
-    "shortlisted": [
-      { label: "← pending review", status: "new" },
-      { label: "on hold", status: "on hold" },
-    ],
-    "on hold": [
-      { label: "← pending review", status: "new" },
-    ],
-    "testing": [
-      { label: "← shortlisted", status: "shortlisted" },
-    ],
-    "finalist": [
-      { label: "← testing", status: "testing" },
-      { label: "← shortlisted", status: "shortlisted" },
-    ],
+    "shortlisted": [{ label: "← pending review", status: "new" }, { label: "on hold", status: "on hold" }],
+    "on hold": [{ label: "← pending review", status: "new" }],
+    "testing": [{ label: "← shortlisted", status: "shortlisted" }],
+    "finalist": [{ label: "← testing", status: "testing" }, { label: "← shortlisted", status: "shortlisted" }],
   };
   const moveOpts = moveBackOptions[app.status] || [];
-
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.1)", zIndex: 300, display: "flex", justifyContent: "flex-end" }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 400, height: "100%", background: "#fff", overflowY: "auto", padding: "36px 28px", borderLeft: "1px solid #f0f0f0", fontFamily: sans }}>
@@ -219,7 +201,7 @@ function DetailPanel({ app, onClose, onMoveBack }) {
         {moveOpts.length > 0 && (
           <>
             <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", margin: "28px 0 12px" }}>change status</p>
-            <div style={{ display: "flex", alignItems: "center", gap: 0, paddingTop: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", paddingTop: 4 }}>
               <span style={{ fontSize: 9, fontWeight: 300, color: "#ccc", letterSpacing: 1, textTransform: "uppercase", flexShrink: 0, marginRight: 10 }}>move back to</span>
               {moveOpts.map((opt, i) => (
                 <span key={opt.status} style={{ display: "flex", alignItems: "center" }}>
@@ -299,9 +281,9 @@ function TestingDetail({ app, onBack, onPass, onFail }) {
         <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>{app.position?.toLowerCase()} · {typeTag(app.work_type).label}</p>
       </div>
       {[
-        ["question 1 — motivation", "The applicant's answer will appear here once they complete the test form. This page scrolls fully so nothing gets cut off."],
-        ["question 2 — case study", "Case study answer appears here. The team can review everything comfortably — full width, no scroll limit."],
-        ["question 3 — vision", "Third question and beyond flow downward. Everything reads clearly."],
+        ["question 1 — motivation", "The applicant's answer will appear here once they complete the test form."],
+        ["question 2 — case study", "Case study answer appears here."],
+        ["question 3 — vision", "Third question and beyond flow downward."],
       ].map(([q, a]) => (
         <div key={q} style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "24px 28px", marginBottom: 12 }}>
           <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>{q}</p>
@@ -317,36 +299,73 @@ function TestingDetail({ app, onBack, onPass, onFail }) {
   );
 }
 
-// ─── Shortlisted Page (extracted to support useState) ───────
-function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
-  const [slDivFilter, setSlDivFilter] = useState("all");
-  const slApps = apps.filter(a => a.status === "shortlisted");
-  const filteredSl = slApps.filter(a =>
-    slDivFilter === "all" || getDivision(a.position) === slDivFilter
+// ─── Page components (each owns its own filter state) ───────
+
+function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
+  const [div, setDiv] = useState("all");
+  const all = apps.filter(a => a.status === "on hold");
+  const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
+  return (
+    <div style={{ padding: "36px 40px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>on hold</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>under consideration — request missing documents or move to next stage</p>
+      </div>
+      <DivFilter allApps={all} active={div} onChange={setDiv} />
+      <Tbl>
+        <THead cols="200px 1fr 90px 56px 56px 1fr">
+          <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH><span style={{ paddingLeft: 24 }}>action</span></TH>
+        </THead>
+        {filtered.length === 0 ? <Empty msg="nothing on hold" /> :
+          filtered.map(a => (
+            <TRow key={a.id} cols="200px 1fr 90px 56px 56px 1fr" onClick={() => setPanelApp(a)}>
+              <TName name={a.full_name} sub={a.city} />
+              <TPos>{a.position?.toLowerCase()}</TPos>
+              <Badge wt={a.work_type} />
+              <DocLink url={a.cv_url} />
+              <DocLink url={a.portfolio_url || a.portfolio_link} />
+              <div style={{ paddingLeft: 24 }} onClick={e => e.stopPropagation()}>
+                <ActionRow actions={[
+                  ...(a.document_requested
+                    ? [{ label: "requested ✓", onClick: () => {} }]
+                    : [{
+                        label: "request document",
+                        onClick: () => {
+                          window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=Your%20Jedda%20Application%20%E2%80%94%20Portfolio%20Update%20Request&body=Hi%20${encodeURIComponent(a.full_name.split(" ")[0])}%2C%0A%0AWe%E2%80%99re%20currently%20reviewing%20portfolios%20from%20our%20applicants%20%E2%80%94%20however%2C%20we%20weren%E2%80%99t%20able%20to%20open%20yours.%0A%0ACould%20you%20re-share%20it%20via%20the%20link%20below%3F%20You%20can%20upload%20a%20PDF%20or%20paste%20a%20link%20to%20Behance%2C%20Dribbble%2C%20Notion%2C%20or%20Google%20Drive.%0A%0A${encodeURIComponent("https://careers.jeddawear.com/reupload?id="+a.id)}%0A%0APlease%20make%20sure%20the%20link%20is%20accessible%20and%20set%20to%20public%20if%20you%E2%80%99re%20sharing%20via%20Drive%20or%20any%20cloud%20platform.%0A%0A%E2%80%94%20Jedda`, "_blank");
+                          updateStatus(a.id, "on hold", { document_requested: true });
+                          showToast("document requested ✓");
+                        }
+                      }]
+                  ),
+                  { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
+                  { label: "reject", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
+                ]} />
+              </div>
+            </TRow>
+          ))
+        }
+      </Tbl>
+    </div>
   );
+}
+
+function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
+  const [div, setDiv] = useState("all");
+  const all = apps.filter(a => a.status === "shortlisted");
+  const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
   return (
     <div style={{ padding: "36px 40px" }}>
       <div style={{ marginBottom: 28 }}>
         <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>shortlisted</p>
         <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>passed initial review — send test link to proceed</p>
       </div>
-      <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
-        {["all", "design", "creative", "retail"].map(f => {
-          const cnt = f === "all" ? slApps.length : slApps.filter(a => getDivision(a.position) === f).length;
-          return (
-            <button key={f} className={`f-btn${slDivFilter === f ? " f-active" : ""}`} onClick={() => setSlDivFilter(f)}
-              style={{ fontSize: 10, fontWeight: 300, color: slDivFilter === f ? "#fff" : "#bbb", background: slDivFilter === f ? "#1a1a1a" : "none", border: "none", cursor: "pointer", fontFamily: sans, padding: "5px 12px", borderRadius: 20, transition: "all 0.15s" }}>
-              {`${f} (${cnt})`}
-            </button>
-          );
-        })}
-      </div>
+      <DivFilter allApps={all} active={div} onChange={setDiv} />
       <Tbl>
         <THead cols="1fr 1fr 1fr 1fr">
           <TH>name</TH><TH>position</TH><TH>type</TH><TH>action</TH>
         </THead>
-        {filteredSl.length === 0 ? <Empty msg="no one shortlisted yet" /> :
-          filteredSl.map(a => (
+        {filtered.length === 0 ? <Empty msg="no one shortlisted yet" /> :
+          filtered.map(a => (
             <TRow key={a.id} cols="1fr 1fr 1fr 1fr" onClick={() => setPanelApp(a)}>
               <TName name={a.full_name} sub={a.city} />
               <TPos>{a.position?.toLowerCase()}</TPos>
@@ -356,6 +375,191 @@ function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
                   style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
                   send test link →
                 </button>
+              </div>
+            </TRow>
+          ))
+        }
+      </Tbl>
+    </div>
+  );
+}
+
+function TestingPage({ apps, setTestingApp }) {
+  const [div, setDiv] = useState("all");
+  const all = apps.filter(a => a.status === "testing");
+  const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
+  return (
+    <div style={{ padding: "36px 40px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>testing</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>click a name to review their full answers</p>
+      </div>
+      <DivFilter allApps={all} active={div} onChange={setDiv} />
+      {filtered.length === 0 ? <Empty msg="no one in testing yet" /> :
+        filtered.map(a => (
+          <div key={a.id} className="tc-card" onClick={() => setTestingApp(a)}
+            style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 20px", cursor: "pointer", transition: "border-color 0.12s", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 400, marginBottom: 3 }}>{a.full_name}</p>
+              <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa" }}>{a.position?.toLowerCase()} · {typeTag(a.work_type).label}</p>
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 200, color: "#ccc" }}>view answers →</span>
+          </div>
+        ))
+      }
+    </div>
+  );
+}
+
+function FinalistPage({ apps, setInterviewApp, setPanelApp }) {
+  const [div, setDiv] = useState("all");
+  const all = apps.filter(a => a.status === "finalist");
+  const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
+  return (
+    <div style={{ padding: "36px 40px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>finalists</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>schedule their interview</p>
+      </div>
+      <DivFilter allApps={all} active={div} onChange={setDiv} />
+      <Tbl>
+        <THead cols="1.8fr 1.4fr 80px 24px 1fr">
+          <TH>name</TH><TH>position</TH><TH>type</TH><TH></TH><TH>action</TH>
+        </THead>
+        {filtered.length === 0 ? <Empty msg="no finalists yet" /> :
+          filtered.map(a => (
+            <TRow key={a.id} cols="1.8fr 1.4fr 80px 24px 1fr" onClick={() => setPanelApp(a)}>
+              <TName name={a.full_name} sub={a.city} />
+              <TPos>{a.position?.toLowerCase()}</TPos>
+              <Badge wt={a.work_type} />
+              <span title={a.is_priority ? "priority" : "via testing"}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: a.is_priority ? "#534ab7" : "#ccc", display: "inline-block" }} />
+              </span>
+              <div onClick={e => e.stopPropagation()}>
+                <button onClick={() => setInterviewApp(a)}
+                  style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
+                  schedule interview →
+                </button>
+              </div>
+            </TRow>
+          ))
+        }
+      </Tbl>
+    </div>
+  );
+}
+
+function InterviewPage({ apps, updateStatus, showToast }) {
+  const [div, setDiv] = useState("all");
+  const all = [...apps.filter(a => a.status === "interview")].sort((a, b) => {
+    const ta = a.interview_date ? new Date(a.interview_date).getTime() : Infinity;
+    const tb = b.interview_date ? new Date(b.interview_date).getTime() : Infinity;
+    return ta - tb;
+  });
+  const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
+  return (
+    <div style={{ padding: "36px 40px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>interview</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>scheduled interviews — sorted by nearest date</p>
+      </div>
+      <DivFilter allApps={all} active={div} onChange={setDiv} />
+      {filtered.length === 0 ? <Empty msg="no interviews scheduled yet" /> :
+        filtered.map(a => {
+          const d = a.interview_date ? new Date(a.interview_date) : null;
+          const dateStr = d ? d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : "—";
+          const timeStr = d ? d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
+          return (
+            <div key={a.id} style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 20px", marginBottom: 8, display: "grid", gridTemplateColumns: "160px 1fr 90px 1fr", gap: 16, alignItems: "center" }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 400, marginBottom: 2 }}>{dateStr}</p>
+                <p style={{ fontSize: 10, fontWeight: 200, color: "#aaa" }}>{timeStr}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 400, marginBottom: 2 }}>{a.full_name}</p>
+                <p style={{ fontSize: 10, fontWeight: 200, color: "#aaa" }}>{a.city}</p>
+              </div>
+              <Badge wt={a.work_type} />
+              <ActionRow actions={[
+                { label: "passed → the final team", cls: "primary", onClick: () => { updateStatus(a.id, "the final team"); showToast("→ the final team"); } },
+                { label: "did not pass", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
+              ]} />
+            </div>
+          );
+        })
+      }
+    </div>
+  );
+}
+
+function FinalTeamPage({ apps, setPanelApp, setAcceptanceApp }) {
+  const [div, setDiv] = useState("all");
+  const all = apps.filter(a => a.status === "the final team");
+  const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
+  return (
+    <div style={{ padding: "36px 40px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>the final team</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>officially part of Jedda — send acceptance email</p>
+      </div>
+      <DivFilter allApps={all} active={div} onChange={setDiv} />
+      <Tbl>
+        <THead cols="1.8fr 1.4fr 80px 1fr">
+          <TH>name</TH><TH>position</TH><TH>type</TH><TH>action</TH>
+        </THead>
+        {filtered.length === 0 ? <Empty msg="no new team members yet" /> :
+          filtered.map(a => (
+            <TRow key={a.id} cols="1.8fr 1.4fr 80px 1fr" onClick={() => setPanelApp(a)}>
+              <TName name={a.full_name} sub={a.city} />
+              <TPos>{a.position?.toLowerCase()}</TPos>
+              <Badge wt={a.work_type} />
+              <div onClick={e => e.stopPropagation()}>
+                {a.acceptance_sent
+                  ? <SentLabel text="acceptance sent ✓" />
+                  : <button onClick={() => setAcceptanceApp(a)}
+                      style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
+                      send acceptance email →
+                    </button>
+                }
+              </div>
+            </TRow>
+          ))
+        }
+      </Tbl>
+    </div>
+  );
+}
+
+function RejectedPage({ apps, updateStatus, showToast, setPanelApp }) {
+  const [div, setDiv] = useState("all");
+  const all = apps.filter(a => a.status === "rejected");
+  const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
+  return (
+    <div style={{ padding: "36px 40px" }}>
+      <div style={{ marginBottom: 28 }}>
+        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>rejected</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>did not pass — send rejection email manually</p>
+      </div>
+      <DivFilter allApps={all} active={div} onChange={setDiv} />
+      <Tbl>
+        <THead cols="1.8fr 1.4fr 80px 110px 1fr">
+          <TH>name</TH><TH>position</TH><TH>type</TH><TH>rejected from</TH><TH>action</TH>
+        </THead>
+        {filtered.length === 0 ? <Empty msg="no rejections" /> :
+          filtered.map(a => (
+            <TRow key={a.id} cols="1.8fr 1.4fr 80px 110px 1fr" onClick={() => setPanelApp(a)}>
+              <TName name={a.full_name} sub={a.city} />
+              <TPos>{a.position?.toLowerCase()}</TPos>
+              <Badge wt={a.work_type} />
+              <span style={{ fontSize: 10, fontWeight: 200, color: "#ccc" }}>{a.rejected_from ? "from " + a.rejected_from : "—"}</span>
+              <div onClick={e => e.stopPropagation()}>
+                {a.rejection_sent
+                  ? <SentLabel text="rejection sent ✓" />
+                  : <button onClick={async () => { await updateStatus(a.id, "rejected", { rejection_sent: true }); showToast("rejection email sent ✓"); }}
+                      style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>
+                      send rejection email
+                    </button>
+                }
               </div>
             </TRow>
           ))
@@ -434,7 +638,6 @@ export default function AdminDashboard() {
     return matchDiv && matchQ;
   });
 
-  // ─── Login screen ───────────────────────────────────────
   if (!authed) return (
     <div style={{ position: "fixed", inset: 0, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;300;400&display=swap');*{box-sizing:border-box;margin:0;padding:0}input::placeholder{color:#ccc}input:focus{outline:none}`}</style>
@@ -460,7 +663,6 @@ export default function AdminDashboard() {
     </div>
   );
 
-  // ─── Render pages ───────────────────────────────────────
   const renderPage = () => {
     if (testingApp) {
       return (
@@ -473,21 +675,15 @@ export default function AdminDashboard() {
       );
     }
 
-    const ph = (title, sub) => (
-      <div style={{ marginBottom: 28 }}>
-        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>{title}</p>
-        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>{sub}</p>
-      </div>
-    );
-
     switch (page) {
-
-      // ── OVERVIEW ──────────────────────────────────────────
       case "overview": {
         const inPipeline = apps.filter(a => ["shortlisted","testing","finalist","interview"].includes(a.status)).length;
         return (
           <div style={{ padding: "36px 40px" }}>
-            {ph("all applicants", "status overview — click a row to view details")}
+            <div style={{ marginBottom: 28 }}>
+              <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>all applicants</p>
+              <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>status overview — click a row to view details</p>
+            </div>
             <Stats cols={4} items={[["total", apps.length], ["pending review", counts.new], ["in progress", inPipeline], ["rejected", counts.rejected]]} />
             <Tbl>
               <THead cols="1fr 1fr 1fr 110px">
@@ -508,24 +704,16 @@ export default function AdminDashboard() {
         );
       }
 
-      // ── PENDING REVIEW ────────────────────────────────────
       case "new": {
         return (
           <div style={{ padding: "36px 40px" }}>
-            {ph("pending review", "not yet reviewed — open cv or portfolio first, then take action")}
+            <div style={{ marginBottom: 28 }}>
+              <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>pending review</p>
+              <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>not yet reviewed — open cv or portfolio first, then take action</p>
+            </div>
             <Stats cols={3} items={[["total", newApps.length], ["from bandung", newApps.filter(a => a.city?.toLowerCase().includes("bandung")).length], ["with portfolio", newApps.filter(a => a.portfolio_url || a.portfolio_link).length]]} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ display: "flex", gap: 4 }}>
-                {["all","design","creative","retail"].map(f => {
-                  const cnt = f === "all" ? newApps.length : newApps.filter(a => getDivision(a.position) === f).length;
-                  return (
-                    <button key={f} className={`f-btn${newPosFilter === f ? " f-active" : ""}`} onClick={() => setNewPosFilter(f)}
-                      style={{ fontSize: 10, fontWeight: 300, color: newPosFilter === f ? "#fff" : "#bbb", background: newPosFilter === f ? "#1a1a1a" : "none", border: "none", cursor: "pointer", fontFamily: sans, padding: "5px 12px", borderRadius: 20, transition: "all 0.15s" }}>
-                      {`${f} (${cnt})`}
-                    </button>
-                  );
-                })}
-              </div>
+              <DivFilter allApps={newApps} active={newPosFilter} onChange={setNewPosFilter} />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="search name, position, city..."
                 style={{ border: "none", borderBottom: "1px solid #e8e8e8", padding: "6px 0", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#1a1a1a", background: "transparent", outline: "none", width: 220 }} />
             </div>
@@ -558,279 +746,55 @@ export default function AdminDashboard() {
         );
       }
 
-      // ── ON HOLD ───────────────────────────────────────────
-      case "onhold": {
-        const onholdApps = apps.filter(a => a.status === "on hold");
-        return (
-          <div style={{ padding: "36px 40px" }}>
-            {ph("on hold", "under consideration — request missing documents or move to next stage")}
-            <Tbl>
-              <THead cols="200px 1fr 90px 56px 56px 1fr">
-                <TH>name</TH><TH>position</TH><TH>type</TH><TH>cv</TH><TH>porto</TH><TH><span style={{ paddingLeft: 24 }}>action</span></TH>
-              </THead>
-              {onholdApps.length === 0 ? <Empty msg="nothing on hold" /> :
-                onholdApps.map(a => (
-                  <TRow key={a.id} cols="200px 1fr 90px 56px 56px 1fr" onClick={() => setPanelApp(a)}>
-                    <TName name={a.full_name} sub={a.city} />
-                    <TPos>{a.position?.toLowerCase()}</TPos>
-                    <Badge wt={a.work_type} />
-                    <DocLink url={a.cv_url} />
-                    <DocLink url={a.portfolio_url || a.portfolio_link} />
-                    <div style={{ paddingLeft: 24 }} onClick={e => e.stopPropagation()}>
-                      <ActionRow actions={[
-                        ...(a.document_requested
-                          ? [{ label: "requested ✓", onClick: () => {} }]
-                          : [{
-                              label: "request document",
-                              onClick: () => {
-                                window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=Your%20Jedda%20Application%20%E2%80%94%20Portfolio%20Update%20Request&body=Hi%20${encodeURIComponent(a.full_name.split(" ")[0])}%2C%0A%0AWe%E2%80%99re%20currently%20reviewing%20portfolios%20from%20our%20applicants%20%E2%80%94%20however%2C%20we%20weren%E2%80%99t%20able%20to%20open%20yours.%0A%0ACould%20you%20re-share%20it%20via%20the%20link%20below%3F%20You%20can%20upload%20a%20PDF%20or%20paste%20a%20link%20to%20Behance%2C%20Dribbble%2C%20Notion%2C%20or%20Google%20Drive.%0A%0A${encodeURIComponent("https://careers.jeddawear.com/reupload?id="+a.id)}%0A%0APlease%20make%20sure%20the%20link%20is%20accessible%20and%20set%20to%20public%20if%20you%E2%80%99re%20sharing%20via%20Drive%20or%20any%20cloud%20platform.%0A%0A%E2%80%94%20Jedda`, "_blank");
-                                updateStatus(a.id, "on hold", { document_requested: true });
-                                showToast("document requested ✓");
-                              }
-                            }]
-                        ),
-                        { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
-                        { label: "reject", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
-                      ]} />
-                    </div>
-                  </TRow>
-                ))
-              }
-            </Tbl>
-          </div>
-        );
-      }
-
-      // ── SHORTLISTED ───────────────────────────────────────
-      case "shortlisted":
-        return <ShortlistedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
-
-      // ── TESTING ───────────────────────────────────────────
-      case "testing": {
-        const testApps = apps.filter(a => a.status === "testing");
-        return (
-          <div style={{ padding: "36px 40px" }}>
-            {ph("testing", "click a name to review their full answers")}
-            {testApps.length === 0 ? <Empty msg="no one in testing yet" /> :
-              testApps.map(a => (
-                <div key={a.id} className="tc-card" onClick={() => setTestingApp(a)}
-                  style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 20px", cursor: "pointer", transition: "border-color 0.12s", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 400, marginBottom: 3 }}>{a.full_name}</p>
-                    <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa" }}>{a.position?.toLowerCase()} · {typeTag(a.work_type).label}</p>
-                  </div>
-                  <span style={{ fontSize: 11, fontWeight: 200, color: "#ccc" }}>view answers →</span>
-                </div>
-              ))
-            }
-          </div>
-        );
-      }
-
-      // ── FINALIST ──────────────────────────────────────────
-      case "finalist": {
-        const finApps = apps.filter(a => a.status === "finalist");
-        return (
-          <div style={{ padding: "36px 40px" }}>
-            {ph("finalists", "schedule their interview")}
-            <Tbl>
-              <THead cols="1.8fr 1.4fr 80px 24px 1fr">
-                <TH>name</TH><TH>position</TH><TH>type</TH><TH></TH><TH>action</TH>
-              </THead>
-              {finApps.length === 0 ? <Empty msg="no finalists yet" /> :
-                finApps.map(a => (
-                  <TRow key={a.id} cols="1.8fr 1.4fr 80px 24px 1fr" onClick={() => setPanelApp(a)}>
-                    <TName name={a.full_name} sub={a.city} />
-                    <TPos>{a.position?.toLowerCase()}</TPos>
-                    <Badge wt={a.work_type} />
-                    <span title={a.is_priority ? "priority" : "via testing"}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: a.is_priority ? "#534ab7" : "#ccc", display: "inline-block" }} />
-                    </span>
-                    <div onClick={e => e.stopPropagation()}>
-                      <button onClick={() => setInterviewApp(a)}
-                        style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
-                        schedule interview →
-                      </button>
-                    </div>
-                  </TRow>
-                ))
-              }
-            </Tbl>
-          </div>
-        );
-      }
-
-      // ── INTERVIEW ─────────────────────────────────────────
-      case "interview": {
-        const intApps = [...apps.filter(a => a.status === "interview")].sort((a, b) => {
-          const ta = a.interview_date ? new Date(a.interview_date).getTime() : Infinity;
-          const tb = b.interview_date ? new Date(b.interview_date).getTime() : Infinity;
-          return ta - tb;
-        });
-        return (
-          <div style={{ padding: "36px 40px" }}>
-            {ph("interview", "scheduled interviews — sorted by nearest date")}
-            {intApps.length === 0 ? <Empty msg="no interviews scheduled yet" /> :
-              intApps.map(a => {
-                const d = a.interview_date ? new Date(a.interview_date) : null;
-                const dateStr = d ? d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : "—";
-                const timeStr = d ? d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
-                return (
-                  <div key={a.id} style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 20px", marginBottom: 8, display: "grid", gridTemplateColumns: "160px 1fr 90px 1fr", gap: 16, alignItems: "center" }}>
-                    <div>
-                      <p style={{ fontSize: 12, fontWeight: 400, marginBottom: 2 }}>{dateStr}</p>
-                      <p style={{ fontSize: 10, fontWeight: 200, color: "#aaa" }}>{timeStr}</p>
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 400, marginBottom: 2 }}>{a.full_name}</p>
-                      <p style={{ fontSize: 10, fontWeight: 200, color: "#aaa" }}>{a.city}</p>
-                    </div>
-                    <Badge wt={a.work_type} />
-                    <ActionRow actions={[
-                      { label: "passed → the final team", cls: "primary", onClick: () => { updateStatus(a.id, "the final team"); showToast("→ the final team"); } },
-                      { label: "did not pass", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
-                    ]} />
-                  </div>
-                );
-              })
-            }
-          </div>
-        );
-      }
-
-      // ── THE FINAL TEAM ────────────────────────────────────
-      case "thefinalteam": {
-        const ftApps = apps.filter(a => a.status === "the final team");
-        return (
-          <div style={{ padding: "36px 40px" }}>
-            {ph("the final team", "officially part of Jedda — send acceptance email")}
-            <Tbl>
-              <THead cols="1.8fr 1.4fr 80px 1fr">
-                <TH>name</TH><TH>position</TH><TH>type</TH><TH>action</TH>
-              </THead>
-              {ftApps.length === 0 ? <Empty msg="no new team members yet" /> :
-                ftApps.map(a => (
-                  <TRow key={a.id} cols="1.8fr 1.4fr 80px 1fr" onClick={() => setPanelApp(a)}>
-                    <TName name={a.full_name} sub={a.city} />
-                    <TPos>{a.position?.toLowerCase()}</TPos>
-                    <Badge wt={a.work_type} />
-                    <div onClick={e => e.stopPropagation()}>
-                      {a.acceptance_sent
-                        ? <SentLabel text="acceptance sent ✓" />
-                        : <button onClick={() => setAcceptanceApp(a)}
-                            style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
-                            send acceptance email →
-                          </button>
-                      }
-                    </div>
-                  </TRow>
-                ))
-              }
-            </Tbl>
-          </div>
-        );
-      }
-
-      // ── REJECTED ──────────────────────────────────────────
-      case "rejected": {
-        const rejApps = apps.filter(a => a.status === "rejected");
-        return (
-          <div style={{ padding: "36px 40px" }}>
-            {ph("rejected", "did not pass — send rejection email manually")}
-            <Tbl>
-              <THead cols="1.8fr 1.4fr 80px 110px 1fr">
-                <TH>name</TH><TH>position</TH><TH>type</TH><TH>rejected from</TH><TH>action</TH>
-              </THead>
-              {rejApps.length === 0 ? <Empty msg="no rejections" /> :
-                rejApps.map(a => (
-                  <TRow key={a.id} cols="1.8fr 1.4fr 80px 110px 1fr" onClick={() => setPanelApp(a)}>
-                    <TName name={a.full_name} sub={a.city} />
-                    <TPos>{a.position?.toLowerCase()}</TPos>
-                    <Badge wt={a.work_type} />
-                    <span style={{ fontSize: 10, fontWeight: 200, color: "#ccc" }}>{a.rejected_from ? "from " + a.rejected_from : "—"}</span>
-                    <div onClick={e => e.stopPropagation()}>
-                      {a.rejection_sent
-                        ? <SentLabel text="rejection sent ✓" />
-                        : <button onClick={async () => { await updateStatus(a.id, "rejected", { rejection_sent: true }); showToast("rejection email sent ✓"); }}
-                            style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>
-                            send rejection email
-                          </button>
-                      }
-                    </div>
-                  </TRow>
-                ))
-              }
-            </Tbl>
-          </div>
-        );
-      }
-
+      case "onhold":      return <OnHoldPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
+      case "shortlisted": return <ShortlistedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
+      case "testing":     return <TestingPage apps={apps} setTestingApp={setTestingApp} />;
+      case "finalist":    return <FinalistPage apps={apps} setInterviewApp={setInterviewApp} setPanelApp={setPanelApp} />;
+      case "interview":   return <InterviewPage apps={apps} updateStatus={updateStatus} showToast={showToast} />;
+      case "thefinalteam": return <FinalTeamPage apps={apps} setPanelApp={setPanelApp} setAcceptanceApp={setAcceptanceApp} />;
+      case "rejected":    return <RejectedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
       default: return null;
     }
   };
 
-  // ─── Layout ─────────────────────────────────────────────
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: sans, color: "#1a1a1a" }}>
-
-      {/* SIDEBAR */}
       <div style={{ width: 196, flexShrink: 0, background: "#fff", borderRight: "1px solid #f0f0f0", display: "flex", flexDirection: "column", padding: "28px 0 20px", overflowY: "auto" }}>
         <div style={{ fontSize: 10, fontWeight: 400, letterSpacing: 4, color: "#1a1a1a", padding: "0 22px 28px", textTransform: "uppercase" }}>jedda</div>
-
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>overview</div>
         <SbItem id="overview" label="all applicants" />
-
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>review</div>
         <SbItem id="new" label="pending review" />
         <SbItem id="onhold" label="on hold" />
-
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>pipeline</div>
         <SbItem id="shortlisted" label="shortlisted" />
         <SbItem id="testing" label="testing" />
         <SbItem id="finalist" label="finalists" />
         <SbItem id="interview" label="interview" />
-
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>closed</div>
         <SbItem id="thefinalteam" label="the final team" />
         <SbItem id="rejected" label="rejected" />
       </div>
 
-      {/* MAIN */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         {renderPage()}
       </div>
 
-      {/* MODALS & PANEL */}
       {panelApp && <DetailPanel app={panelApp} onClose={() => setPanelApp(null)} onMoveBack={async (id, status) => { await updateStatus(id, status); showToast("→ " + status); setPanelApp(null); }} />}
 
       {interviewApp && (
-        <InterviewModal
-          app={interviewApp}
-          onClose={() => setInterviewApp(null)}
-          onConfirm={async (dt) => {
-            await updateStatus(interviewApp.id, "interview", { interview_date: dt });
-            setInterviewApp(null);
-            showToast("interview email sent ✓");
-          }}
-        />
+        <InterviewModal app={interviewApp} onClose={() => setInterviewApp(null)}
+          onConfirm={async (dt) => { await updateStatus(interviewApp.id, "interview", { interview_date: dt }); setInterviewApp(null); showToast("interview email sent ✓"); }} />
       )}
 
       {acceptanceApp && (
-        <AcceptanceModal
-          app={acceptanceApp}
-          onClose={() => setAcceptanceApp(null)}
-          onConfirm={async () => {
-            await updateStatus(acceptanceApp.id, "the final team", { acceptance_sent: true });
-            setAcceptanceApp(null);
-            showToast("acceptance email sent ✓");
-          }}
-        />
+        <AcceptanceModal app={acceptanceApp} onClose={() => setAcceptanceApp(null)}
+          onConfirm={async () => { await updateStatus(acceptanceApp.id, "the final team", { acceptance_sent: true }); setAcceptanceApp(null); showToast("acceptance email sent ✓"); }} />
       )}
 
-      {/* TOAST */}
       {toast && (
         <div style={{ position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)", background: "#1a1a1a", color: "#fff", fontSize: 11, fontWeight: 300, padding: "9px 18px", letterSpacing: 0.5, whiteSpace: "nowrap", zIndex: 999 }}>
           {toast}
