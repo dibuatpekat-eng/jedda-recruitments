@@ -7,6 +7,61 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const PASS = import.meta.env.VITE_ADMIN_PASSWORD || "jedda2026";
 const sans = "'DM Sans', sans-serif";
 
+// ─── Scoring constants ──────────────────────────────────────
+const CORRECT_PICKS = [2, 6];
+const IDEAL_RANKING = [
+  "The quality and construction — the intention behind how it's made",
+  "How comfortable it feels to wear",
+  "Whether the silhouette and proportions feel right",
+  "Whether it feels consistent with the rest of the collection",
+  "How it looks in photos",
+  "Whether it's on-trend",
+];
+const WEIGHTS = { q1: 0.20, q2: 0.15, q3: 0.25, q4: 0.03, q5: 0.07, q6: 0.10, q7: 0.20 };
+
+function scoreQ1(visualPicks) {
+  if (!visualPicks) return null;
+  const picks = visualPicks.split(",").map(s => parseInt(s.trim()));
+  const correct = picks.filter(p => CORRECT_PICKS.includes(p)).length;
+  if (correct === 2) return 100;
+  if (correct === 1) return 50;
+  return 0;
+}
+
+function scoreQ3(rankingStr) {
+  if (!rankingStr) return null;
+  const items = rankingStr.split(" | ").map(s => s.trim());
+  let swaps = 0;
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      const idealI = IDEAL_RANKING.indexOf(items[i]);
+      const idealJ = IDEAL_RANKING.indexOf(items[j]);
+      if (idealI > idealJ) swaps++;
+    }
+  }
+  const trendIdx = items.findIndex(s => s.toLowerCase().includes("on-trend"));
+  if (trendIdx <= 1) return 65;
+  if (swaps === 0) return 100;
+  if (swaps <= 2) return 90;
+  if (swaps <= 4) return 80;
+  if (swaps <= 7) return 75;
+  if (swaps <= 11) return 70;
+  return 65;
+}
+
+function calcTotal(scores) {
+  const keys = ["q1","q2","q3","q4","q5","q6","q7"];
+  let weightedSum = 0, totalWeight = 0;
+  keys.forEach(k => {
+    if (scores[k] != null) {
+      weightedSum += scores[k] * WEIGHTS[k];
+      totalWeight += WEIGHTS[k];
+    }
+  });
+  if (totalWeight === 0) return null;
+  return Math.round((weightedSum / totalWeight) * 10) / 10;
+}
+
 // ─── helpers ───────────────────────────────────────────────
 function getDivision(pos = "") {
   const p = pos.toLowerCase();
@@ -27,7 +82,7 @@ function statusStyle(s = "") {
     "new":            { bg: "#f5f5f5",  color: "#aaa"    },
     "on hold":        { bg: "#faeeda",  color: "#854f0b" },
     "shortlisted":    { bg: "#e6f1fb",  color: "#185fa5" },
-    "testing":        { bg: "#f0eaf5",  color: "#6b3fa0" },
+    "evaluating":     { bg: "#f0eaf5",  color: "#6b3fa0" },
     "finalist":       { bg: "#e1f5ee",  color: "#0f6e56" },
     "interview":      { bg: "#f5f0eb",  color: "#a0826a" },
     "rejected":       { bg: "#fcebeb",  color: "#a32d2d" },
@@ -55,6 +110,9 @@ input:focus{border-color:#1a1a1a!important;outline:none}
 .ar-danger:hover{color:#8b2a00!important}
 .tc-card:hover{border-color:#ccc!important}
 .f-btn:hover:not(.f-active){color:#1a1a1a}
+.score-input{width:48px;border:none;border-bottom:1px solid #e8e8e4;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:300;color:#1a1a1a;background:transparent;text-align:right;padding:2px 0}
+.score-input:focus{outline:none;border-bottom-color:#1a1a1a}
+.score-input::-webkit-inner-spin-button{opacity:0}
 `;
 
 // ─── Gmail helpers ──────────────────────────────────────────
@@ -166,102 +224,295 @@ function Stats({ cols = 4, items }) {
     </div>
   );
 }
+function ScoreChip({ score }) {
+  if (score == null) return <span style={{ fontSize: 10, fontWeight: 200, color: "#ccc" }}>—</span>;
+  const color = score >= 85 ? "#0f6e56" : score >= 70 ? "#854f0b" : "#a32d2d";
+  const bg = score >= 85 ? "#e1f5ee" : score >= 70 ? "#faeeda" : "#fcebeb";
+  return <span style={{ fontSize: 11, fontWeight: 400, padding: "3px 10px", background: bg, color, letterSpacing: 0.3 }}>{score}</span>;
+}
 
 // ─── Request Doc Action ─────────────────────────────────────
 function RequestDocAction({ app, updateStatus, showToast }) {
   if (!app.document_requested) {
     return (
-      <ArBtn
-        label="request document"
-        onClick={() => {
-          openRequestDocEmail(app);
-          updateStatus(app.id, "on hold", { document_requested: true });
-          showToast("document requested ✓");
-        }}
-      />
+      <ArBtn label="request document" onClick={() => {
+        openRequestDocEmail(app);
+        updateStatus(app.id, "on hold", { document_requested: true });
+        showToast("document requested ✓");
+      }} />
     );
   }
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+    <div style={{ display: "flex", alignItems: "center" }}>
       <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", whiteSpace: "nowrap" }}>requested ✓</span>
       <ArDivider />
-      <ArBtn
-        label="send again"
-        onClick={() => {
-          openRequestDocEmail(app);
-          showToast("email reopened ✓");
-        }}
-      />
+      <ArBtn label="send again" onClick={() => { openRequestDocEmail(app); showToast("email reopened ✓"); }} />
     </div>
   );
 }
 
-// ─── Alignment Test Section (inside DetailPanel) ────────────
-function AlignmentTestSection({ appId }) {
-  const [data, setData] = useState(null);
+// ─── Score Row — defined OUTSIDE EvaluatingDetail to prevent remount ───
+// FIX #4: moved out of EvaluatingDetail so React doesn't recreate on every render
+function ScoreRow({ qKey, label, autoScore, manualScores, setManualScores }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
+      <div>
+        <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 1.5, textTransform: "uppercase" }}>{label}</span>
+        <span style={{ fontSize: 9, fontWeight: 200, color: "#ccc", marginLeft: 6 }}>{autoScore != null ? "auto" : "0–100"}</span>
+      </div>
+      {autoScore != null
+        ? <ScoreChip score={autoScore} />
+        : <input
+            className="score-input"
+            type="number" min="0" max="100"
+            value={manualScores[qKey]}
+            onChange={e => setManualScores(prev => ({ ...prev, [qKey]: e.target.value }))}
+          />
+      }
+    </div>
+  );
+}
+
+// ─── Evaluating Detail ──────────────────────────────────────
+function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
+  const [atData, setAtData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [manualScores, setManualScores] = useState({ q2: "", q4: "", q5: "", q6: "", q7: "" });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    supabase.from("alignment_tests").select("*").eq("applicant_id", appId).maybeSingle()
-      .then(({ data }) => { setData(data); setLoading(false); });
-  }, [appId]);
+    supabase.from("alignment_tests").select("*").eq("applicant_id", app.id).maybeSingle()
+      .then(({ data }) => {
+        setAtData(data);
+        if (data) {
+          setManualScores({
+            q2: data.score_q2 ?? "",
+            q4: data.score_q4 ?? "",
+            q5: data.score_q5 ?? "",
+            q6: data.score_q6 ?? "",
+            q7: data.score_q7 ?? "",
+          });
+        }
+        setLoading(false);
+      });
+  }, [app.id]);
 
-  if (loading) return null;
-  if (!data) return null;
+  const autoQ1 = atData ? scoreQ1(atData.visual_picks) : null;
+  const autoQ3 = atData ? scoreQ3(atData.design_ranking) : null;
 
-  const fields = [
-    ["visual picks", data.visual_picks],
-    ["wear feeling", data.wear_feeling],
-    ["design ranking", data.design_ranking?.split(" | ").map((t, i) => `${i + 1}. ${t}`).join("\n")],
-    ["local brands", data.local_brands],
-    ["international brands", data.intl_brands],
-    ["dimension", data.dimension],
-  ].filter(([, v]) => v);
+  const allScores = {
+    q1: autoQ1,
+    q2: manualScores.q2 !== "" ? parseFloat(manualScores.q2) : null,
+    q3: autoQ3,
+    q4: manualScores.q4 !== "" ? parseFloat(manualScores.q4) : null,
+    q5: manualScores.q5 !== "" ? parseFloat(manualScores.q5) : null,
+    q6: manualScores.q6 !== "" ? parseFloat(manualScores.q6) : null,
+    q7: manualScores.q7 !== "" ? parseFloat(manualScores.q7) : null,
+  };
+  const total = calcTotal(allScores);
+  const totalColor = total == null ? "#ccc" : total >= 85 ? "#0f6e56" : total >= 70 ? "#854f0b" : "#a32d2d";
+
+  const saveScores = async () => {
+    if (!atData) return;
+    setSaving(true);
+    await supabase.from("alignment_tests").update({
+      score_q2: allScores.q2,
+      score_q4: allScores.q4,
+      score_q5: allScores.q5,
+      score_q6: allScores.q6,
+      score_q7: allScores.q7,
+      score_total: total,
+    }).eq("id", atData.id);
+    // also update score_total on applications so it shows in the list
+    await supabase.from("applications").update({ score_total: total }).eq("id", app.id);
+    setSaving(false);
+    showToast("scores saved ✓");
+  };
+
+  const rankItems = atData?.design_ranking ? atData.design_ranking.split(" | ") : [];
+  const trendPos = rankItems.findIndex(s => s.toLowerCase().includes("on-trend"));
+
+  if (loading) return <div style={{ padding: "36px 40px", fontSize: 11, fontWeight: 200, color: "#ccc" }}>loading...</div>;
+
+  if (!atData) return (
+    <div style={{ padding: "36px 40px", fontFamily: sans }}>
+      <button onClick={onBack} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer", marginBottom: 28, padding: 0 }}>← back to evaluating</button>
+      <p style={{ fontSize: 13, fontWeight: 300, color: "#bbb" }}>alignment test not submitted yet.</p>
+    </div>
+  );
 
   return (
-    <>
-      <div style={{ width: "100%", height: 1, background: "#f5f5f5", margin: "24px 0" }} />
-      <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", marginBottom: 12 }}>alignment test</p>
-      <div style={{ borderTop: "1px solid #f0f0f0" }}>
-        {fields.map(([l, v]) => (
-          <div key={l} style={{ padding: "11px 0", borderBottom: "1px solid #f5f5f5" }}>
-            <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 2, textTransform: "uppercase", display: "block", marginBottom: 6 }}>{l}</span>
-            <span style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a", lineHeight: 1.8, whiteSpace: "pre-line", display: "block" }}>{v}</span>
-          </div>
-        ))}
-        {(data.moodboard_url || data.moodboard_link) && (
-          <div style={{ padding: "11px 0", borderBottom: "1px solid #f5f5f5" }}>
-            <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 2, textTransform: "uppercase", display: "block", marginBottom: 6 }}>moodboard</span>
-            <a href={data.moodboard_url || data.moodboard_link} target="_blank" rel="noreferrer"
-              style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a", textDecoration: "none", borderBottom: "1px solid #ddd", paddingBottom: 2 }}>
-              open moodboard →
-            </a>
-          </div>
-        )}
+    <div style={{ padding: "36px 40px", fontFamily: sans, color: "#1a1a1a" }}>
+      <button onClick={onBack} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer", marginBottom: 28, padding: 0 }}>← back to evaluating</button>
+
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 36 }}>
+        <div>
+          <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 4 }}>{app.full_name}</p>
+          <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>{app.position?.toLowerCase()} · {typeTag(app.work_type).label}</p>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 6 }}>total score</p>
+          <p style={{ fontSize: 36, fontWeight: 300, color: totalColor }}>{total != null ? total : "—"}</p>
+        </div>
       </div>
-    </>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 268px", gap: 24, alignItems: "start" }}>
+
+        {/* Left — answers */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+          {/* Q1 */}
+          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb" }}>Q1 — visual instinct · 20%</p>
+              <ScoreChip score={autoQ1} />
+            </div>
+            <p style={{ fontSize: 13, fontWeight: 300, color: "#444" }}>picked: <strong style={{ fontWeight: 400 }}>{atData.visual_picks || "—"}</strong></p>
+            <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", marginTop: 5 }}>
+              correct: {CORRECT_PICKS.join(" & ")} · {autoQ1 === 100 ? "both correct ✓" : autoQ1 === 50 ? "one correct" : "none correct"}
+            </p>
+          </div>
+
+          {/* Q2 */}
+          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q2 — empathy · 15%</p>
+            <p style={{ fontSize: 13, fontWeight: 300, color: "#444", lineHeight: 1.9 }}>{atData.wear_feeling || "—"}</p>
+          </div>
+
+          {/* Q3 */}
+          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb" }}>Q3 — design ranking · 25%</p>
+              <ScoreChip score={autoQ3} />
+            </div>
+            {rankItems.length > 0
+              ? rankItems.map((item, i) => {
+                  const idealPos = IDEAL_RANKING.indexOf(item);
+                  const diff = Math.abs(i - idealPos);
+                  const isTrendRed = item.toLowerCase().includes("on-trend") && i <= 1;
+                  return (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 0", borderBottom: "1px solid #f8f8f8" }}>
+                      <span style={{ fontSize: 9, fontWeight: 200, color: "#ccc", width: 16, flexShrink: 0 }}>{i + 1}</span>
+                      <span style={{ fontSize: 12, fontWeight: 300, color: isTrendRed ? "#c47a5a" : "#444", flex: 1, lineHeight: 1.5 }}>{item}</span>
+                      {diff === 0
+                        ? <span style={{ fontSize: 9, color: "#6a9e76" }}>✓</span>
+                        : <span style={{ fontSize: 9, color: diff >= 3 ? "#c47a5a" : "#ccc" }}>+{diff}</span>
+                      }
+                    </div>
+                  );
+                })
+              : <p style={{ fontSize: 12, fontWeight: 200, color: "#ccc" }}>—</p>
+            }
+            {trendPos >= 0 && trendPos <= 1 && (
+              <p style={{ fontSize: 10, fontWeight: 200, color: "#c47a5a", marginTop: 10 }}>⚠ on-trend ranked #{trendPos + 1} — minimum score applied</p>
+            )}
+          </div>
+
+          {/* Q4 */}
+          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q4 — local brands · 3%</p>
+            <p style={{ fontSize: 13, fontWeight: 300, color: "#444" }}>{atData.local_brands || "—"}</p>
+          </div>
+
+          {/* Q5 */}
+          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q5 — international brands · 7%</p>
+            <p style={{ fontSize: 13, fontWeight: 300, color: "#444" }}>{atData.intl_brands || "—"}</p>
+          </div>
+
+          {/* Q6 */}
+          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q6 — dimension · 10%</p>
+            <p style={{ fontSize: 13, fontWeight: 300, color: "#444", lineHeight: 1.9 }}>{atData.dimension || "—"}</p>
+          </div>
+
+          {/* Q7 */}
+          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q7 — moodboard · 20%</p>
+            {(atData.moodboard_url || atData.moodboard_link)
+              ? <a href={atData.moodboard_url || atData.moodboard_link} target="_blank" rel="noreferrer"
+                  style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a", textDecoration: "none", borderBottom: "1px solid #ddd", paddingBottom: 2 }}>
+                  open moodboard →
+                </a>
+              : <p style={{ fontSize: 12, fontWeight: 200, color: "#ccc" }}>—</p>
+            }
+          </div>
+
+        </div>
+
+        {/* Right — scoring + decision */}
+        <div style={{ position: "sticky", top: 36, display: "flex", flexDirection: "column", gap: 12 }}>
+
+          {/* Score panel */}
+          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 14 }}>scoring</p>
+            <ScoreRow qKey="q1" label="Q1 visual" autoScore={autoQ1} manualScores={manualScores} setManualScores={setManualScores} />
+            <ScoreRow qKey="q2" label="Q2 empathy" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
+            <ScoreRow qKey="q3" label="Q3 ranking" autoScore={autoQ3} manualScores={manualScores} setManualScores={setManualScores} />
+            <ScoreRow qKey="q4" label="Q4 local brands" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
+            <ScoreRow qKey="q5" label="Q5 intl brands" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
+            <ScoreRow qKey="q6" label="Q6 dimension" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
+            <ScoreRow qKey="q7" label="Q7 moodboard" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #f0f0f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 2, textTransform: "uppercase" }}>total</span>
+              <span style={{ fontSize: 22, fontWeight: 300, color: totalColor }}>{total != null ? total : "—"}</span>
+            </div>
+            <button onClick={saveScores} disabled={saving}
+              style={{ marginTop: 14, width: "100%", background: "#1a1a1a", border: "none", color: "#fff", fontFamily: sans, fontSize: 10, fontWeight: 300, padding: "10px 0", cursor: saving ? "default" : "pointer", letterSpacing: 1, opacity: saving ? 0.5 : 1 }}>
+              {saving ? "saving..." : "save scores"}
+            </button>
+          </div>
+
+          {/* Decision */}
+          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 14 }}>decision</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <button onClick={onPass}
+                style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer", textAlign: "left" }}>
+                move to finalist →
+              </button>
+              <button onClick={onFail}
+                style={{ background: "none", border: "none", borderBottom: "1px solid #f0e8e4", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#c47a5a", cursor: "pointer", textAlign: "left" }}>
+                reject
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
   );
 }
 
 // ─── Detail Panel ──────────────────────────────────────────
+// FIX #2: tampilin fd_specs (spesialisasi) dan fd_sub di detail panel
+// FIX #6: hapus AlignmentTestSection dari sini, hasil hanya di EvaluatingDetail
 function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
   if (!app) return null;
   const tag = typeTag(app.work_type);
+  const isDesign = getDivision(app.position) === "design";
   const fields = [
-    ["position", app.position], ["work type", app.work_type],
-    ["phone", app.phone], ["email", app.email],
-    ["city", app.city], ["open to bandung", app.bandung],
+    ["position", app.position],
+    ...(isDesign && app.fd_sub ? [["division", app.fd_sub]] : []),
+    ...(isDesign && app.fd_specs ? [["specialization", app.fd_specs]] : []),
+    ["work type", app.work_type],
+    ["phone", app.phone],
+    ["email", app.email],
+    ["city", app.city],
+    ["open to bandung", app.bandung],
     ["availability", app.availability],
     ["why jedda", app.why_jedda],
   ].filter(([, v]) => v);
+
   const moveBackOptions = {
-    "shortlisted": [{ label: "← pending review", status: "new" }, { label: "on hold", status: "on hold" }],
-    "on hold": [{ label: "← pending review", status: "new" }],
-    "testing": [{ label: "← shortlisted", status: "shortlisted" }],
-    "finalist": [{ label: "← testing", status: "testing" }, { label: "← shortlisted", status: "shortlisted" }],
+    "shortlisted":  [{ label: "← pending review", status: "new" }, { label: "on hold", status: "on hold" }],
+    "on hold":      [{ label: "← pending review", status: "new" }],
+    "evaluating":   [{ label: "← shortlisted", status: "shortlisted" }],
+    "finalist":     [{ label: "← evaluating", status: "evaluating" }, { label: "← shortlisted", status: "shortlisted" }],
   };
   const moveOpts = moveBackOptions[app.status] || [];
-  const canReferOut = ["new", "on hold", "shortlisted", "testing", "finalist"].includes(app.status);
+  const canReferOut = ["new", "on hold", "shortlisted", "evaluating", "finalist"].includes(app.status);
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.1)", zIndex: 300, display: "flex", justifyContent: "flex-end" }}>
@@ -291,19 +542,6 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
               : <span style={{ fontSize: 11, fontWeight: 200, color: "#ccc" }}>no portfolio uploaded</span>
           }
         </div>
-
-        {/* ── Alignment Test Results ── */}
-        {app.alignment_test_submitted && (
-          <AlignmentTestSection appId={app.id} />
-        )}
-        {!app.alignment_test_submitted && app.alignment_test_sent && (
-          <>
-            <div style={{ width: "100%", height: 1, background: "#f5f5f5", margin: "24px 0" }} />
-            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>alignment test</p>
-            <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>link sent — awaiting submission</p>
-          </>
-        )}
-
         {moveOpts.length > 0 && (
           <>
             <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", margin: "28px 0 12px" }}>change status</p>
@@ -313,7 +551,7 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
                 <span key={opt.status} style={{ display: "flex", alignItems: "center" }}>
                   {i > 0 && <div style={{ width: 1, height: 10, background: "#e8e8e8", margin: "0 10px" }} />}
                   <button onClick={() => { onMoveBack(app.id, opt.status); onClose(); }}
-                    style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer", padding: 0, transition: "color 0.15s" }}
+                    style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer", padding: 0 }}
                     onMouseOver={e => e.target.style.color = "#1a1a1a"}
                     onMouseOut={e => e.target.style.color = "#aaa"}
                   >{opt.label}</button>
@@ -326,11 +564,9 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
           <>
             <div style={{ width: "100%", height: 1, background: "#f5f5f5", margin: "28px 0" }} />
             <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>refer out</p>
-            <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb", lineHeight: 1.7, marginBottom: 14 }}>
-              not the right fit for jedda right now — but worth passing on to another company.
-            </p>
+            <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb", lineHeight: 1.7, marginBottom: 14 }}>not the right fit for jedda right now — but worth passing on to another company.</p>
             <button onClick={() => { onReferOut(app.id); onClose(); }}
-              style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#7a6aaa", cursor: "pointer", padding: 0, letterSpacing: 0.3, borderBottom: "1px solid #c8c0e8", paddingBottom: 2, transition: "opacity 0.15s" }}
+              style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#7a6aaa", cursor: "pointer", padding: 0, borderBottom: "1px solid #c8c0e8", paddingBottom: 2 }}
               onMouseOver={e => e.currentTarget.style.opacity = "0.5"}
               onMouseOut={e => e.currentTarget.style.opacity = "1"}
             >move to referred out →</button>
@@ -390,35 +626,6 @@ function AcceptanceModal({ app, onClose, onConfirm }) {
   );
 }
 
-// ─── Testing Detail ─────────────────────────────────────────
-function TestingDetail({ app, onBack, onPass, onFail }) {
-  if (!app) return null;
-  return (
-    <div style={{ padding: "36px 40px", fontFamily: sans, color: "#1a1a1a" }}>
-      <button onClick={onBack} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer", marginBottom: 28, padding: 0 }}>← back to testing</button>
-      <div style={{ marginBottom: 28 }}>
-        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>{app.full_name}</p>
-        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>{app.position?.toLowerCase()} · {typeTag(app.work_type).label}</p>
-      </div>
-      {[
-        ["question 1 — motivation", "The applicant's answer will appear here once they complete the test form."],
-        ["question 2 — case study", "Case study answer appears here."],
-        ["question 3 — vision", "Third question and beyond flow downward."],
-      ].map(([q, a]) => (
-        <div key={q} style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "24px 28px", marginBottom: 12 }}>
-          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>{q}</p>
-          <p style={{ fontSize: 13, fontWeight: 300, color: "#444", lineHeight: 1.9 }}>{a}</p>
-        </div>
-      ))}
-      <div style={{ display: "flex", alignItems: "center", marginTop: 20 }}>
-        <ArBtn label="passed → make finalist" cls="primary" onClick={onPass} />
-        <ArDivider />
-        <ArBtn label="did not pass" cls="danger" onClick={onFail} />
-      </div>
-    </div>
-  );
-}
-
 // ─── Page components ────────────────────────────────────────
 function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
   const [div, setDiv] = useState("all");
@@ -460,6 +667,7 @@ function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
   );
 }
 
+// FIX #1: kolom action (send test link) dihapus, FIX #3: nama stage sudah "evaluating"
 function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
   const [div, setDiv] = useState("all");
   const all = apps.filter(a => a.status === "shortlisted");
@@ -468,16 +676,16 @@ function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
     <div style={{ padding: "36px 40px" }}>
       <div style={{ marginBottom: 28 }}>
         <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>shortlisted</p>
-        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>passed initial review — send alignment test or move to next stage</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>passed initial review — send alignment test to proceed</p>
       </div>
       <DivFilter allApps={all} active={div} onChange={setDiv} />
       <Tbl>
-        <THead cols="1.8fr 1.4fr 80px 130px 1fr">
-          <TH>name</TH><TH>position</TH><TH>type</TH><TH>alignment test</TH><TH>action</TH>
+        <THead cols="1.8fr 1.4fr 80px 180px">
+          <TH>name</TH><TH>position</TH><TH>type</TH><TH>alignment test</TH>
         </THead>
         {filtered.length === 0 ? <Empty msg="no one shortlisted yet" /> :
           filtered.map(a => (
-            <TRow key={a.id} cols="1.8fr 1.4fr 80px 130px 1fr" onClick={() => setPanelApp(a)}>
+            <TRow key={a.id} cols="1.8fr 1.4fr 80px 180px" onClick={() => setPanelApp(a)}>
               <TName name={a.full_name} sub={a.city} />
               <TPos>{a.position?.toLowerCase()}</TPos>
               <Badge wt={a.work_type} />
@@ -492,15 +700,10 @@ function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
                       </div>
                     : <ArBtn label="send alignment test" onClick={() => {
                         openAlignmentTestEmail(a);
-                        updateStatus(a.id, "shortlisted", { alignment_test_sent: true });
+                        updateStatus(a.id, "evaluating", { alignment_test_sent: true });
                         showToast("alignment test sent ✓");
                       }} />
                 }
-              </div>
-              <div onClick={e => e.stopPropagation()}>
-                <ActionRow actions={[
-                  { label: "send test link →", cls: "primary", onClick: () => { updateStatus(a.id, "testing"); showToast("→ testing"); } },
-                ]} />
               </div>
             </TRow>
           ))
@@ -510,29 +713,36 @@ function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
   );
 }
 
-function TestingPage({ apps, setTestingApp }) {
+// FIX #3: renamed from TestingPage to EvaluatingPage, status "evaluating"
+function EvaluatingPage({ apps, setEvaluatingApp }) {
   const [div, setDiv] = useState("all");
-  const all = apps.filter(a => a.status === "testing");
+  const all = apps.filter(a => a.status === "evaluating");
   const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
   return (
     <div style={{ padding: "36px 40px" }}>
       <div style={{ marginBottom: 28 }}>
-        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>testing</p>
-        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>click a name to review their full answers</p>
+        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>evaluating</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>alignment test sent — click a name to review answers and score</p>
       </div>
       <DivFilter allApps={all} active={div} onChange={setDiv} />
-      {filtered.length === 0 ? <Empty msg="no one in testing yet" /> :
-        filtered.map(a => (
-          <div key={a.id} className="tc-card" onClick={() => setTestingApp(a)}
-            style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 20px", cursor: "pointer", transition: "border-color 0.12s", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 400, marginBottom: 3 }}>{a.full_name}</p>
-              <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa" }}>{a.position?.toLowerCase()} · {typeTag(a.work_type).label}</p>
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 200, color: "#ccc" }}>view answers →</span>
-          </div>
-        ))
-      }
+      <Tbl>
+        <THead cols="1.8fr 1.4fr 80px 80px 120px">
+          <TH>name</TH><TH>position</TH><TH>type</TH><TH>score</TH><TH>test status</TH>
+        </THead>
+        {filtered.length === 0 ? <Empty msg="no one being evaluated yet" /> :
+          filtered.map(a => (
+            <TRow key={a.id} cols="1.8fr 1.4fr 80px 80px 120px" onClick={() => setEvaluatingApp(a)}>
+              <TName name={a.full_name} sub={a.city} />
+              <TPos>{a.position?.toLowerCase()}</TPos>
+              <Badge wt={a.work_type} />
+              <ScoreChip score={a.score_total ?? null} />
+              <span style={{ fontSize: 10, fontWeight: 200, color: a.alignment_test_submitted ? "#6a9e76" : "#bbb" }}>
+                {a.alignment_test_submitted ? "submitted ✓" : "awaiting..."}
+              </span>
+            </TRow>
+          ))
+        }
+      </Tbl>
     </div>
   );
 }
@@ -558,7 +768,7 @@ function FinalistPage({ apps, setInterviewApp, setPanelApp }) {
               <TName name={a.full_name} sub={a.city} />
               <TPos>{a.position?.toLowerCase()}</TPos>
               <Badge wt={a.work_type} />
-              <span title={a.is_priority ? "priority" : "via testing"}>
+              <span title={a.is_priority ? "priority" : "via evaluating"}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: a.is_priority ? "#534ab7" : "#ccc", display: "inline-block" }} />
               </span>
               <div onClick={e => e.stopPropagation()}>
@@ -736,7 +946,7 @@ export default function AdminDashboard() {
   const [panelApp, setPanelApp] = useState(null);
   const [interviewApp, setInterviewApp] = useState(null);
   const [acceptanceApp, setAcceptanceApp] = useState(null);
-  const [testingApp, setTestingApp] = useState(null);
+  const [evaluatingApp, setEvaluatingApp] = useState(null);
   const [newPosFilter, setNewPosFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
@@ -775,16 +985,16 @@ export default function AdminDashboard() {
   };
 
   const counts = {
-    overview: apps.length,
-    new: apps.filter(a => a.status === "new").length,
-    onhold: apps.filter(a => a.status === "on hold").length,
-    referredout: apps.filter(a => a.status === "referred out").length,
-    shortlisted: apps.filter(a => a.status === "shortlisted").length,
-    testing: apps.filter(a => a.status === "testing").length,
-    finalist: apps.filter(a => a.status === "finalist").length,
-    interview: apps.filter(a => a.status === "interview").length,
+    overview:     apps.length,
+    new:          apps.filter(a => a.status === "new").length,
+    onhold:       apps.filter(a => a.status === "on hold").length,
+    referredout:  apps.filter(a => a.status === "referred out").length,
+    shortlisted:  apps.filter(a => a.status === "shortlisted").length,
+    evaluating:   apps.filter(a => a.status === "evaluating").length,
+    finalist:     apps.filter(a => a.status === "finalist").length,
+    interview:    apps.filter(a => a.status === "interview").length,
     thefinalteam: apps.filter(a => a.status === "the final team").length,
-    rejected: apps.filter(a => a.status === "rejected").length,
+    rejected:     apps.filter(a => a.status === "rejected").length,
   };
 
   const newApps = apps.filter(a => a.status === "new");
@@ -813,7 +1023,7 @@ export default function AdminDashboard() {
   );
 
   const SbItem = ({ id, label }) => (
-    <div className={`sb-item${page === id ? " active" : ""}`} onClick={() => { setPage(id); setTestingApp(null); }}
+    <div className={`sb-item${page === id ? " active" : ""}`} onClick={() => { setPage(id); setEvaluatingApp(null); }}
       style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 22px", cursor: "pointer", transition: "all 0.12s", borderLeft: "2px solid transparent" }}>
       <span className="sb-label" style={{ fontSize: 12, fontWeight: 300, color: "#aaa", fontFamily: sans }}>{label}</span>
       <span className="sb-count" style={{ fontSize: 10, fontWeight: 300, color: "#ccc", background: "#f5f5f5", padding: "2px 7px", borderRadius: 10, minWidth: 22, textAlign: "center", fontFamily: sans }}>{counts[id] ?? 0}</span>
@@ -821,20 +1031,21 @@ export default function AdminDashboard() {
   );
 
   const renderPage = () => {
-    if (testingApp) {
+    if (evaluatingApp) {
       return (
-        <TestingDetail
-          app={testingApp}
-          onBack={() => setTestingApp(null)}
-          onPass={async () => { await updateStatus(testingApp.id, "finalist", { is_priority: false }); setTestingApp(null); showToast("→ finalist"); }}
-          onFail={async () => { await updateStatus(testingApp.id, "rejected", { rejection_sent: false }); setTestingApp(null); showToast("→ rejected"); }}
+        <EvaluatingDetail
+          app={evaluatingApp}
+          onBack={() => setEvaluatingApp(null)}
+          showToast={showToast}
+          onPass={async () => { await updateStatus(evaluatingApp.id, "finalist", { is_priority: false }); setEvaluatingApp(null); showToast("→ finalist"); }}
+          onFail={async () => { await updateStatus(evaluatingApp.id, "rejected", { rejection_sent: false }); setEvaluatingApp(null); showToast("→ rejected"); }}
         />
       );
     }
 
     switch (page) {
       case "overview": {
-        const inPipeline = apps.filter(a => ["shortlisted","testing","finalist","interview"].includes(a.status)).length;
+        const inPipeline = apps.filter(a => ["shortlisted","evaluating","finalist","interview"].includes(a.status)).length;
         return (
           <div style={{ padding: "36px 40px" }}>
             <div style={{ marginBottom: 28 }}>
@@ -906,7 +1117,7 @@ export default function AdminDashboard() {
       case "onhold":       return <OnHoldPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
       case "referredout":  return <ReferredOutPage apps={apps} setPanelApp={setPanelApp} />;
       case "shortlisted":  return <ShortlistedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
-      case "testing":      return <TestingPage apps={apps} setTestingApp={setTestingApp} />;
+      case "evaluating":   return <EvaluatingPage apps={apps} setEvaluatingApp={setEvaluatingApp} />;
       case "finalist":     return <FinalistPage apps={apps} setInterviewApp={setInterviewApp} setPanelApp={setPanelApp} />;
       case "interview":    return <InterviewPage apps={apps} updateStatus={updateStatus} showToast={showToast} />;
       case "thefinalteam": return <FinalTeamPage apps={apps} setPanelApp={setPanelApp} setAcceptanceApp={setAcceptanceApp} />;
@@ -929,7 +1140,7 @@ export default function AdminDashboard() {
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>pipeline</div>
         <SbItem id="shortlisted" label="shortlisted" />
-        <SbItem id="testing" label="testing" />
+        <SbItem id="evaluating" label="evaluating" />
         <SbItem id="finalist" label="finalists" />
         <SbItem id="interview" label="interview" />
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />

@@ -89,18 +89,43 @@ export default function AlignmentTest() {
     setErr({});
   };
 
-  // drag rank
-  const onDragStart = (i) => setDragIdx(i);
+  // drag rank — mouse + touch compatible
+  const dragIdxRef = useRef(null);
+  const onDragStart = (i) => { setDragIdx(i); dragIdxRef.current = i; };
   const onDragOver = (e, i) => {
     e.preventDefault();
-    if (dragIdx === null || dragIdx === i) return;
+    if (dragIdxRef.current === null || dragIdxRef.current === i) return;
     const items = [...rankItems];
-    const [moved] = items.splice(dragIdx, 1);
+    const [moved] = items.splice(dragIdxRef.current, 1);
     items.splice(i, 0, moved);
     setRankItems(items);
     setDragIdx(i);
+    dragIdxRef.current = i;
   };
-  const onDragEnd = () => setDragIdx(null);
+  const onDragEnd = () => { setDragIdx(null); dragIdxRef.current = null; };
+
+  // touch drag
+  const touchStartIdx = useRef(null);
+  const onTouchStart = (i) => { touchStartIdx.current = i; setDragIdx(i); };
+  const onTouchMove = (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const row = el?.closest("[data-rank-idx]");
+    if (!row) return;
+    const targetIdx = parseInt(row.dataset.rankIdx);
+    if (isNaN(targetIdx) || targetIdx === dragIdxRef.current) return;
+    const items = [...rankItems];
+    const from = dragIdxRef.current ?? touchStartIdx.current;
+    if (from === null) return;
+    const [moved] = items.splice(from, 1);
+    items.splice(targetIdx, 0, moved);
+    setRankItems(items);
+    setDragIdx(targetIdx);
+    dragIdxRef.current = targetIdx;
+    touchStartIdx.current = targetIdx;
+  };
+  const onTouchEnd = () => { setDragIdx(null); dragIdxRef.current = null; touchStartIdx.current = null; };
 
   const next1 = () => { if (selected.length < 2) { setErr({ e1: true }); return; } go(2); };
   const next2 = () => { if (!q2.trim()) { setErr({ e2: true }); return; } go(3); };
@@ -285,12 +310,17 @@ export default function AlignmentTest() {
       <p style={{ ...sub, marginBottom: 24 }}>rank what you check first. drag to reorder.</p>
       <div style={{ display: "flex", flexDirection: "column", marginBottom: 16, userSelect: "none" }}>
         {rankItems.map((text, i) => (
-          <div key={text} className={`at-rank-item${dragIdx === i ? " dragging" : ""}`}
+          <div key={text}
+            data-rank-idx={i}
+            className={`at-rank-item${dragIdx === i ? " dragging" : ""}`}
             draggable
             onDragStart={() => onDragStart(i)}
             onDragOver={e => onDragOver(e, i)}
             onDragEnd={onDragEnd}
-            style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 0", borderBottom: "1px solid #f0f0f0", transition: "opacity 0.15s", opacity: dragIdx === i ? 0.3 : 1 }}>
+            onTouchStart={() => onTouchStart(i)}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 0", borderBottom: "1px solid #f0f0f0", transition: "opacity 0.15s", opacity: dragIdx === i ? 0.3 : 1, cursor: "grab", touchAction: "none" }}>
             <span style={{ fontSize: 9, fontWeight: 200, color: "#ccc", letterSpacing: 2, width: 18, flexShrink: 0 }}>{String(i+1).padStart(2,"0")}</span>
             <span style={{ fontSize: 13, fontWeight: 300, color: "#444", lineHeight: 1.5, flex: 1 }}>{text}</span>
             <span style={{ fontSize: 11, color: "#ddd", flexShrink: 0 }}>⠿</span>
