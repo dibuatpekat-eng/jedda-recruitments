@@ -57,10 +57,18 @@ input:focus{border-color:#1a1a1a!important;outline:none}
 .f-btn:hover:not(.f-active){color:#1a1a1a}
 `;
 
-// ─── Gmail helper ───────────────────────────────────────────
+// ─── Gmail helpers ──────────────────────────────────────────
 function openRequestDocEmail(a) {
   window.open(
     `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=Your%20Jedda%20Application%20%E2%80%94%20Portfolio%20Update%20Request&body=Hi%20${encodeURIComponent(a.full_name.split(" ")[0])}%2C%0A%0AWe%E2%80%99re%20currently%20reviewing%20portfolios%20from%20our%20applicants%20%E2%80%94%20however%2C%20we%20weren%E2%80%99t%20able%20to%20open%20yours.%0A%0ACould%20you%20re-share%20it%20via%20the%20link%20below%3F%20You%20can%20upload%20a%20PDF%20or%20paste%20a%20link%20to%20Behance%2C%20Dribbble%2C%20Notion%2C%20or%20Google%20Drive.%0A%0A${encodeURIComponent("https://careers.jeddawear.com/reupload?id="+a.id)}%0A%0APlease%20make%20sure%20the%20link%20is%20accessible%20and%20set%20to%20public%20if%20you%E2%80%99re%20sharing%20via%20Drive%20or%20any%20cloud%20platform.%0A%0A%E2%80%94%20Jedda`,
+    "_blank"
+  );
+}
+
+function openAlignmentTestEmail(a) {
+  const link = `https://careers.jeddawear.com/alignment-test?id=${a.id}`;
+  window.open(
+    `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=Your%20Next%20Step%20with%20Jedda&body=Hi%20${encodeURIComponent(a.full_name.split(" ")[0])}%2C%0A%0ACongratulations%20%E2%80%94%20you%E2%80%99ve%20passed%20our%20initial%20screening%20and%20have%20been%20selected%20to%20move%20forward.%0A%0ABefore%20the%20final%20selection%2C%20we%E2%80%99d%20like%20to%20invite%20you%20to%20complete%20a%20short%20alignment%20test.%0A%0A${encodeURIComponent(link)}%0A%0AIt%20should%20take%20around%2010%20minutes.%20There%20are%20no%20right%20or%20wrong%20answers%20%E2%80%94%20we%20just%20want%20to%20get%20to%20know%20how%20you%20see%20things.%0A%0A%E2%80%94%20Jedda`,
     "_blank"
   );
 }
@@ -160,7 +168,6 @@ function Stats({ cols = 4, items }) {
 }
 
 // ─── Request Doc Action ─────────────────────────────────────
-// First click: open Gmail + mark requested. After that: show "requested ✓ · send again" where send again re-opens Gmail without changing state.
 function RequestDocAction({ app, updateStatus, showToast }) {
   if (!app.document_requested) {
     return (
@@ -186,6 +193,53 @@ function RequestDocAction({ app, updateStatus, showToast }) {
         }}
       />
     </div>
+  );
+}
+
+// ─── Alignment Test Section (inside DetailPanel) ────────────
+function AlignmentTestSection({ appId }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from("alignment_tests").select("*").eq("applicant_id", appId).maybeSingle()
+      .then(({ data }) => { setData(data); setLoading(false); });
+  }, [appId]);
+
+  if (loading) return null;
+  if (!data) return null;
+
+  const fields = [
+    ["visual picks", data.visual_picks],
+    ["wear feeling", data.wear_feeling],
+    ["design ranking", data.design_ranking?.split(" | ").map((t, i) => `${i + 1}. ${t}`).join("\n")],
+    ["local brands", data.local_brands],
+    ["international brands", data.intl_brands],
+    ["dimension", data.dimension],
+  ].filter(([, v]) => v);
+
+  return (
+    <>
+      <div style={{ width: "100%", height: 1, background: "#f5f5f5", margin: "24px 0" }} />
+      <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", marginBottom: 12 }}>alignment test</p>
+      <div style={{ borderTop: "1px solid #f0f0f0" }}>
+        {fields.map(([l, v]) => (
+          <div key={l} style={{ padding: "11px 0", borderBottom: "1px solid #f5f5f5" }}>
+            <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 2, textTransform: "uppercase", display: "block", marginBottom: 6 }}>{l}</span>
+            <span style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a", lineHeight: 1.8, whiteSpace: "pre-line", display: "block" }}>{v}</span>
+          </div>
+        ))}
+        {(data.moodboard_url || data.moodboard_link) && (
+          <div style={{ padding: "11px 0", borderBottom: "1px solid #f5f5f5" }}>
+            <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 2, textTransform: "uppercase", display: "block", marginBottom: 6 }}>moodboard</span>
+            <a href={data.moodboard_url || data.moodboard_link} target="_blank" rel="noreferrer"
+              style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a", textDecoration: "none", borderBottom: "1px solid #ddd", paddingBottom: 2 }}>
+              open moodboard →
+            </a>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -237,6 +291,19 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
               : <span style={{ fontSize: 11, fontWeight: 200, color: "#ccc" }}>no portfolio uploaded</span>
           }
         </div>
+
+        {/* ── Alignment Test Results ── */}
+        {app.alignment_test_submitted && (
+          <AlignmentTestSection appId={app.id} />
+        )}
+        {!app.alignment_test_submitted && app.alignment_test_sent && (
+          <>
+            <div style={{ width: "100%", height: 1, background: "#f5f5f5", margin: "24px 0" }} />
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>alignment test</p>
+            <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>link sent — awaiting submission</p>
+          </>
+        )}
+
         {moveOpts.length > 0 && (
           <>
             <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", margin: "28px 0 12px" }}>change status</p>
@@ -353,7 +420,6 @@ function TestingDetail({ app, onBack, onPass, onFail }) {
 }
 
 // ─── Page components ────────────────────────────────────────
-
 function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
   const [div, setDiv] = useState("all");
   const all = apps.filter(a => a.status === "on hold");
@@ -378,9 +444,6 @@ function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
               <DocLink url={a.cv_url} />
               <DocLink url={a.portfolio_url || a.portfolio_link} />
               <div style={{ paddingLeft: 24 }} onClick={e => e.stopPropagation()}>
-                <ActionRow actions={[
-                  // request doc action is handled separately due to its two-state logic
-                ]} />
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <RequestDocAction app={a} updateStatus={updateStatus} showToast={showToast} />
                   <ArDivider />
@@ -405,24 +468,39 @@ function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
     <div style={{ padding: "36px 40px" }}>
       <div style={{ marginBottom: 28 }}>
         <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>shortlisted</p>
-        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>passed initial review — send test link to proceed</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>passed initial review — send alignment test or move to next stage</p>
       </div>
       <DivFilter allApps={all} active={div} onChange={setDiv} />
       <Tbl>
-        <THead cols="1fr 1fr 1fr 1fr">
-          <TH>name</TH><TH>position</TH><TH>type</TH><TH>action</TH>
+        <THead cols="1.8fr 1.4fr 80px 130px 1fr">
+          <TH>name</TH><TH>position</TH><TH>type</TH><TH>alignment test</TH><TH>action</TH>
         </THead>
         {filtered.length === 0 ? <Empty msg="no one shortlisted yet" /> :
           filtered.map(a => (
-            <TRow key={a.id} cols="1fr 1fr 1fr 1fr" onClick={() => setPanelApp(a)}>
+            <TRow key={a.id} cols="1.8fr 1.4fr 80px 130px 1fr" onClick={() => setPanelApp(a)}>
               <TName name={a.full_name} sub={a.city} />
               <TPos>{a.position?.toLowerCase()}</TPos>
               <Badge wt={a.work_type} />
               <div onClick={e => e.stopPropagation()}>
-                <button onClick={() => { updateStatus(a.id, "testing"); showToast("test link sent ✓"); }}
-                  style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
-                  send test link →
-                </button>
+                {a.alignment_test_submitted
+                  ? <span style={{ fontSize: 10, fontWeight: 300, color: "#6a9e76" }}>submitted ✓</span>
+                  : a.alignment_test_sent
+                    ? <div style={{ display: "flex", alignItems: "center" }}>
+                        <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", whiteSpace: "nowrap" }}>sent ✓</span>
+                        <ArDivider />
+                        <ArBtn label="resend" onClick={() => { openAlignmentTestEmail(a); showToast("email reopened ✓"); }} />
+                      </div>
+                    : <ArBtn label="send alignment test" onClick={() => {
+                        openAlignmentTestEmail(a);
+                        updateStatus(a.id, "shortlisted", { alignment_test_sent: true });
+                        showToast("alignment test sent ✓");
+                      }} />
+                }
+              </div>
+              <div onClick={e => e.stopPropagation()}>
+                <ActionRow actions={[
+                  { label: "send test link →", cls: "primary", onClick: () => { updateStatus(a.id, "testing"); showToast("→ testing"); } },
+                ]} />
               </div>
             </TRow>
           ))
