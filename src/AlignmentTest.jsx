@@ -245,32 +245,21 @@ export default function AlignmentTest() {
 
   // ── SCREEN 0: Welcome ──
   if (screen === 0) return (
-    <div style={{ position: "fixed", inset: 0, background: "#fafaf8", overflowY: "auto", fontFamily: sans, color: "#111" }}>
-      <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: 1, background: "#e8e8e4", zIndex: 100 }} />
-      <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "22px 40px" }}>
-        <Logo />
-      </nav>
-      {/* Photo strip */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr 1fr", gap: 3, padding: "0 40px", marginBottom: 40 }}>
-        {["14","15","16"].map((n, i) => (
-          <div key={n} style={{ aspectRatio: "3/4", overflow: "hidden", background: "#e0dbd4" }}>
-            <img src={`/${n}.jpg`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block", filter: "grayscale(20%)" }} />
-          </div>
-        ))}
-      </div>
-      {/* Content */}
-      <div style={{ padding: "0 40px 80px", maxWidth: 640 }}>
+    <Wrap prog={prog}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <p style={eyebrow}>design division</p>
-        <h1 style={{ fontFamily: sans, fontSize: 42, fontWeight: 300, lineHeight: 1.15, color: "#111", marginBottom: 24 }}>
+        <h1 style={{ fontFamily: sans, fontSize: 48, fontWeight: 300, lineHeight: 1.15, color: "#111", marginBottom: 32 }}>
           Alignment Test.
         </h1>
-        <p style={{ fontSize: 13, fontWeight: 300, color: "#777", lineHeight: 1.9, marginBottom: 36, maxWidth: 400 }}>
+        <p style={{ fontSize: 13, fontWeight: 200, color: "#777", lineHeight: 1.9, marginBottom: 40, maxWidth: 420 }}>
           This is about how you see things — what you're drawn to, what you'd leave out, and whether your instincts align with where Jedda is going.
         </p>
-        <button className="at-btn" style={btn} onClick={() => go(1)}>begin →</button>
-        <span style={{ fontSize: 10, fontWeight: 300, color: "#bbb", letterSpacing: 1, marginTop: 14, display: "block" }}>7 questions · ~10 minutes</span>
+        <div>
+          <button className="at-btn" style={btn} onClick={() => go(1)}>begin →</button>
+          <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", letterSpacing: 1, marginTop: 14, display: "block" }}>7 questions · ~10 minutes</span>
+        </div>
       </div>
-    </div>
+    </Wrap>
   );
 
   // ── SCREEN 1: Visual picks ──
