@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "./supabase.js";
 
 const sans = "'DM Sans', sans-serif";
-const serif = "'DM Serif Display', serif";
 
 // Q3 initial order — shuffled (not ideal order)
 const RANK_ITEMS_DEFAULT = [
@@ -17,13 +16,14 @@ const RANK_ITEMS_DEFAULT = [
 const CORRECT_PICKS = [2, 7, 10];
 
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,200;0,300;0,400;1,200;1,300&family=DM+Serif+Display:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,200;0,300;0,400;1,200;1,300&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{background:#fafaf8!important;color:#111}
 ::selection{background:#111;color:#fafaf8}
 input::placeholder,textarea::placeholder{color:#ccc}
 input:focus,textarea:focus{outline:none}
-.at-pitem:hover{opacity:0.82}
+.at-pitem{transition:transform 0.2s ease}
+.at-pitem:hover{transform:scale(1.03)}
 .at-pitem.dimmed{opacity:0.25;pointer-events:none}
 .at-pitem.selected{outline:1.5px solid #111;outline-offset:-1px}
 .at-pitem.selected .at-pcheck{opacity:1!important}
@@ -37,11 +37,11 @@ input:focus,textarea:focus{outline:none}
 .at-tfield:focus{border-bottom-color:#111!important}
 `;
 
-const tf = { width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #e8e8e4", padding: "11px 0 18px", fontFamily: sans, fontSize: 14, fontWeight: 300, color: "#111", resize: "none", lineHeight: 1.7, minHeight: 56 };
+const tf = { width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #e8e8e4", padding: "11px 0 8px", fontFamily: sans, fontSize: 14, fontWeight: 300, color: "#111", resize: "none", lineHeight: 1.7, minHeight: 56 };
 const btn = { background: "none", border: "none", borderBottom: "1px solid #111", paddingBottom: 3, fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#111", cursor: "pointer", letterSpacing: 2 };
 const btnGhost = { background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 200, color: "#aaa", cursor: "pointer", letterSpacing: 1.5, marginRight: 24 };
 const eyebrow = { fontSize: 9, fontWeight: 300, letterSpacing: 3.5, textTransform: "uppercase", color: "#2c2a24", marginBottom: 16 };
-const titleStyle = { fontFamily: serif, fontSize: 38, fontWeight: 300, lineHeight: 1.2, color: "#111", marginBottom: 10 };
+const titleStyle = { fontFamily: sans, fontSize: 36, fontWeight: 300, lineHeight: 1.2, color: "#111", marginBottom: 10 };
 const sub = { fontSize: 13, fontWeight: 200, color: "#777", lineHeight: 1.9, marginBottom: 40 };
 const subSm = { fontSize: 12, fontWeight: 200, color: "#aaa", lineHeight: 1.8, marginBottom: 32 };
 const errStyle = { color: "#c47a5a", fontSize: 10, fontWeight: 300, marginTop: 10 };
@@ -243,7 +243,8 @@ export default function AlignmentTest() {
   if (screen === 0) return (
     <Wrap prog={prog}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <h1 style={{ fontFamily: serif, fontSize: 52, fontWeight: 400, lineHeight: 1.15, color: "#111", marginBottom: 32 }}>
+        <p style={eyebrow}>alignment test</p>
+        <h1 style={{ fontFamily: sans, fontSize: 48, fontWeight: 300, lineHeight: 1.15, color: "#111", marginBottom: 32 }}>
           Alignment Test.
         </h1>
         <p style={{ fontSize: 13, fontWeight: 200, color: "#777", lineHeight: 1.9, marginBottom: 40, maxWidth: 420 }}>
@@ -368,7 +369,7 @@ export default function AlignmentTest() {
           <div key={i} style={{ display: "grid", gridTemplateColumns: "28px 1fr 90px", alignItems: "end", borderBottom: "1px solid #e8e8e4", padding: "10px 0" }}>
             <span style={{ fontSize: 9, fontWeight: 200, color: "#bbb", letterSpacing: 2, paddingBottom: 2 }}>{String(i + 1).padStart(2, "0")}</span>
             <input style={inputStyle} placeholder="brand name" value={name} onChange={e => { setName(e.target.value); setErr({}); }} />
-            <input style={{ ...inputSmStyle, borderBottom: "1px solid #e8e8e4", paddingBottom: 4 }} placeholder="origin" value={from} onChange={e => { setFrom(e.target.value); setErr({}); }} />
+            <input style={{ ...inputSmStyle, borderBottom: "1px solid #e8e8e4", paddingBottom: 4 }} placeholder="from" value={from} onChange={e => { setFrom(e.target.value); setErr({}); }} />
           </div>
         ))}
       </div>
@@ -438,15 +439,12 @@ export default function AlignmentTest() {
     <Wrap prog={100}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ width: 28, height: 1, background: "#111", marginBottom: 36 }} />
-        <h2 style={{ fontFamily: serif, fontSize: 36, fontWeight: 300, lineHeight: 1.3, color: "#111", marginBottom: 20 }}>
-          That's all<br />we needed<br />to see.
+        <h2 style={{ fontFamily: sans, fontSize: 32, fontWeight: 300, lineHeight: 1.4, color: "#111", marginBottom: 24 }}>
+          Thank you<br />for your time.
         </h2>
         <p style={{ fontSize: 13, fontWeight: 200, color: "#777", lineHeight: 2 }}>
-          We'll take it from here. If there's an alignment,<br />you'll hear from us soon.
+          You'll receive an email on whether you advance<br />to the final selection or not within 4 days.
         </p>
-        <div style={{ marginTop: 60, borderTop: "1px solid #eee", paddingTop: 24 }}>
-          <p style={{ fontSize: 9, fontWeight: 200, color: "#ccc", letterSpacing: 3, textTransform: "uppercase" }}>Jedda — 2026</p>
-        </div>
       </div>
     </Wrap>
   );
