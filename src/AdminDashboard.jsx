@@ -129,8 +129,10 @@ function openRequestDocEmail(a) {
 
 function openAlignmentTestEmail(a) {
   const link = `https://careers.jeddawear.com/alignment-test?id=${a.id}`;
+  const firstName = a.full_name.split(" ")[0];
+  const body = `Hi ${firstName},\n\nWe apologize for the delayed response, we received hundreds of applications for the design division alone, far more than we expected.\n\nCongratulations! You are one of the few candidates who made it past our initial review.\n\nBefore the final selection, to narrow down our candidates and find the right fit, there's an alignment test you need to complete. This test is to understand how you see things and whether your instincts align with where Jedda is going.\n\nIt will only take around 10 minutes. You can answer in Bahasa Indonesia or English, whichever feels most natural. It won't affect how we evaluate you.\n\nPlease complete this test within 2 days of receiving this email. Once submitted, the test cannot be resubmitted.\n\n${link}\n\nBest regards,\nJedda`;
   window.open(
-    `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=Your%20Next%20Step%20with%20Jedda&body=Hi%20${encodeURIComponent(a.full_name.split(" ")[0])}%2C%0A%0ACongratulations%20%E2%80%94%20you%E2%80%99ve%20passed%20our%20initial%20screening%20and%20have%20been%20selected%20to%20move%20forward.%0A%0ABefore%20the%20final%20selection%2C%20we%E2%80%99d%20like%20to%20invite%20you%20to%20complete%20a%20short%20alignment%20test.%0A%0A${encodeURIComponent(link)}%0A%0AIt%20should%20take%20around%2010%20minutes.%20There%20are%20no%20right%20or%20wrong%20answers%20%E2%80%94%20we%20just%20want%20to%20get%20to%20know%20how%20you%20see%20things.%0A%0A%E2%80%94%20Jedda`,
+    `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=Your%20Next%20Step%20with%20Jedda&body=${encodeURIComponent(body)}`,
     "_blank"
   );
 }
@@ -1072,15 +1074,15 @@ export default function AdminDashboard() {
   if (!authed) {
     return (
       <div style={{ height: "100vh", display: "flex", fontFamily: sans, background: "#fff" }}>
-        {/* Left — branding panel */}
-        <div style={{ width: "45%", background: "#f7f7f5", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "36px 40px" }}>
-          <img src="/jedda-logo.png" alt="Jedda" style={{ height: 17, width: "auto", display: "block", filter: "invert(1)" }} />
-          <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", letterSpacing: 1.5, textTransform: "uppercase" }}>recruitment dashboard</p>
+        {/* Left panel */}
+        <div style={{ width: "46%", background: "#f7f7f5", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "36px 40px" }}>
+          <span style={{ fontSize: 13, fontWeight: 400, letterSpacing: 5, textTransform: "uppercase", color: "#1a1a1a" }}>Jedda</span>
+          <span style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2.5, textTransform: "uppercase", color: "#bbb" }}>recruitment dashboard</span>
         </div>
-        {/* Right — login form */}
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px" }}>
+        {/* Right panel */}
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ width: 280 }}>
-            <p style={{ fontSize: 12, fontWeight: 300, color: "#aaa", marginBottom: 28, letterSpacing: 0.5 }}>sign in to continue</p>
+            <p style={{ fontSize: 12, fontWeight: 300, color: "#aaa", marginBottom: 28, letterSpacing: 0.3 }}>sign in to continue</p>
             <div style={{ position: "relative", marginBottom: pwErr ? 12 : 20 }}>
               <input
                 type={pwVisible ? "text" : "password"}
@@ -1223,7 +1225,7 @@ export default function AdminDashboard() {
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: sans, color: "#1a1a1a" }}>
       <div style={{ width: 196, flexShrink: 0, background: "#fff", borderRight: "1px solid #f0f0f0", display: "flex", flexDirection: "column", padding: "28px 0 20px", overflowY: "auto" }}>
         <div style={{ padding: "0 22px 20px" }}>
-          <img src="/jedda-logo.png" alt="Jedda" style={{ height: 17, width: "auto", display: "block", filter: "invert(1)" }} />
+          <span style={{ fontSize: 13, fontWeight: 400, letterSpacing: 5, textTransform: "uppercase", color: "#1a1a1a" }}>Jedda</span>
         </div>
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>overview</div>
         <SbItem id="overview" label="all applicants" />
