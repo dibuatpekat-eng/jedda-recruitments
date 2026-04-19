@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "./supabase.js";
 
-const sans = "'DM Sans', sans-serif";
+const sans = "'Figtree', sans-serif";
 
 // Q3 initial order — shuffled (not ideal order)
 const RANK_ITEMS_DEFAULT = [
@@ -16,14 +16,14 @@ const RANK_ITEMS_DEFAULT = [
 const CORRECT_PICKS = [2, 7, 10];
 
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,200;0,300;0,400;1,200;1,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{background:#fafaf8!important;color:#111}
 ::selection{background:#111;color:#fafaf8}
 input::placeholder,textarea::placeholder{color:#ccc}
 input:focus,textarea:focus{outline:none}
-.at-pitem{transition:transform 0.2s ease}
-.at-pitem:hover{transform:scale(1.03)}
+.at-pitem{transition:opacity 0.2s}
+.at-pitem:hover{opacity:0.85}
 .at-pitem.dimmed{opacity:0.25;pointer-events:none}
 .at-pitem.selected{outline:1.5px solid #111;outline-offset:-1px}
 .at-pitem.selected .at-pcheck{opacity:1!important}
@@ -35,6 +35,9 @@ input:focus,textarea:focus{outline:none}
 .at-ubox:hover{border-color:#999!important}
 .at-ifield:focus{border-bottom-color:#111!important}
 .at-tfield:focus{border-bottom-color:#111!important}
+.at-lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.at-lightbox-inner{position:relative;max-width:480px;width:90%;cursor:default}
+.at-lightbox img{width:100%;max-height:80vh;object-fit:contain;display:block}
 `;
 
 const tf = { width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #e8e8e4", padding: "11px 0 8px", fontFamily: sans, fontSize: 14, fontWeight: 300, color: "#111", resize: "none", lineHeight: 1.7, minHeight: 56 };
@@ -94,6 +97,7 @@ export default function AlignmentTest() {
   const [uploadProgress, setUploadProgress] = useState(null);
   const [err, setErr] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [lightbox, setLightbox] = useState(null); // number 1–10 or null
 
   const fileRef = useRef(null);
   const pointerDragIdx = useRef(null);
@@ -243,7 +247,7 @@ export default function AlignmentTest() {
   if (screen === 0) return (
     <Wrap prog={prog}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <p style={eyebrow}>alignment test</p>
+        <p style={eyebrow}>design division</p>
         <h1 style={{ fontFamily: sans, fontSize: 48, fontWeight: 300, lineHeight: 1.15, color: "#111", marginBottom: 32 }}>
           Alignment Test.
         </h1>
@@ -261,10 +265,27 @@ export default function AlignmentTest() {
   // ── SCREEN 1: Visual picks ──
   if (screen === 1) return (
     <Wrap prog={prog}>
+      {lightbox !== null && (
+        <div className="at-lightbox" onClick={() => setLightbox(null)}>
+          <div className="at-lightbox-inner" onClick={e => e.stopPropagation()}>
+            <img src={`/${lightbox}.jpg`} alt={`look ${lightbox}`} />
+            <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 9, fontWeight: 300, color: "rgba(255,255,255,0.4)", letterSpacing: 2 }}>{String(lightbox).padStart(2,"0")}</span>
+              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                <button onClick={() => setLightbox(null)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", fontFamily: sans, fontSize: 10, cursor: "pointer", letterSpacing: 1 }}>close</button>
+                <button onClick={() => { if (!selected.includes(lightbox)) pick(lightbox); setLightbox(null); }}
+                  style={{ background: selected.includes(lightbox) ? "transparent" : "#fff", border: "1px solid #fff", color: selected.includes(lightbox) ? "rgba(255,255,255,0.5)" : "#111", fontFamily: sans, fontSize: 10, fontWeight: 400, cursor: selected.includes(lightbox) ? "default" : "pointer", padding: "7px 18px", letterSpacing: 1, transition: "all 0.2s" }}>
+                  {selected.includes(lightbox) ? "selected ✓" : "select →"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <p style={eyebrow}>01 / 07</p>
       <h2 style={titleStyle}>Which three feel<br/>like <em style={{ fontStyle: "italic", color: "#888" }}>Jedda?</em></h2>
       <p style={{ ...sub, marginBottom: 10 }}>Trust your eye. Don't overthink it.</p>
-      <p style={{ fontSize: 10, fontWeight: 200, color: "#aaa", letterSpacing: 1, marginBottom: 16 }}>
+      <p style={{ fontSize: 10, fontWeight: 300, color: "#aaa", letterSpacing: 1, marginBottom: 16 }}>
         selected <b style={{ color: "#111", fontWeight: 400 }}>{selected.length}</b> / 3
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6, marginBottom: 14 }}>
@@ -275,10 +296,10 @@ export default function AlignmentTest() {
           return (
             <div key={num}
               className={`at-pitem${isSel ? " selected" : ""}${isDimmed ? " dimmed" : ""}`}
-              onClick={() => pick(num)}
+              onClick={() => setLightbox(num)}
               style={{ aspectRatio: "3/4", position: "relative", cursor: "pointer", overflow: "hidden", background: "#e8e8e4", outline: isSel ? "1.5px solid #111" : "none", outlineOffset: -1, opacity: isDimmed ? 0.25 : 1 }}>
               <img src={p.src} alt={`look ${num}`} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block" }} />
-              <span style={{ position: "absolute", bottom: 7, left: 9, fontSize: 8, fontWeight: 200, letterSpacing: 1.5, color: "rgba(255,255,255,0.4)" }}>{String(num).padStart(2, "0")}</span>
+              <span style={{ position: "absolute", bottom: 7, left: 9, fontSize: 8, fontWeight: 300, letterSpacing: 1.5, color: "rgba(255,255,255,0.5)" }}>{String(num).padStart(2,"0")}</span>
               <div className="at-pcheck" style={{ position: "absolute", top: 7, right: 7, width: 17, height: 17, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", opacity: isSel ? 1 : 0, transition: "opacity 0.2s" }}>
                 <svg viewBox="0 0 9 7" fill="none" width="8" height="8"><path d="M1 3.5l2.5 2.5L8 1" stroke="white" strokeWidth="1.5" /></svg>
               </div>
