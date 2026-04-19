@@ -746,12 +746,12 @@ function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
       </div>
       <DivFilter allApps={all} active={div} onChange={setDiv} />
       <Tbl>
-        <THead cols="220px 1fr 90px 180px">
+        <THead cols="200px 1fr 90px 180px">
           <TH>name</TH><TH>position</TH><TH>type</TH><TH>alignment test</TH>
         </THead>
         {filtered.length === 0 ? <Empty msg="no one shortlisted yet" /> :
           filtered.map(a => (
-            <TRow key={a.id} cols="220px 1fr 90px 180px" onClick={() => setPanelApp(a)}>
+            <TRow key={a.id} cols="200px 1fr 90px 180px" onClick={() => setPanelApp(a)}>
               <TName name={a.full_name} sub={a.city} />
               <TPos>{a.position?.toLowerCase()}</TPos>
               <Badge wt={a.work_type} />
@@ -792,13 +792,12 @@ function EvaluatingPage({ apps, setEvaluatingApp, showToast }) {
       </div>
       <DivFilter allApps={all} active={div} onChange={setDiv} />
       <Tbl>
-        {/* FIX: kolom proporsional */}
-        <THead cols="220px 1fr 90px 72px 160px">
+        <THead cols="200px 1fr 90px 100px 160px">
           <TH>name</TH><TH>position</TH><TH>type</TH><TH>score</TH><TH>test status</TH>
         </THead>
         {filtered.length === 0 ? <Empty msg="no one being evaluated yet" /> :
           filtered.map(a => (
-            <TRow key={a.id} cols="220px 1fr 90px 72px 160px" onClick={() => setEvaluatingApp(a)}>
+            <TRow key={a.id} cols="200px 1fr 90px 100px 160px" onClick={() => setEvaluatingApp(a)}>
               <TName name={a.full_name} sub={a.city} />
               <TPos>{a.position?.toLowerCase()}</TPos>
               <Badge wt={a.work_type} />
@@ -1013,6 +1012,7 @@ export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false);
   const [pw, setPw] = useState("");
   const [pwErr, setPwErr] = useState(false);
+  const [pwVisible, setPwVisible] = useState(false);
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState("overview");
@@ -1071,20 +1071,39 @@ export default function AdminDashboard() {
 
   if (!authed) {
     return (
-      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, background: "#f7f7f5" }}>
-        <div style={{ width: 280 }}>
-          <img src="/jedda-logo.png" alt="Jedda" style={{ height: 22, width: "auto", display: "block", filter: "invert(1)", marginBottom: 36 }} />
-          <input
-            type="password" placeholder="password" value={pw}
-            onChange={e => setPw(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && login()}
-            style={{ width: "100%", border: "none", borderBottom: `1px solid ${pwErr ? "#c47a5a" : "#e8e8e8"}`, padding: "10px 0", fontFamily: sans, fontSize: 13, fontWeight: 300, color: "#1a1a1a", background: "transparent", outline: "none", marginBottom: 20 }}
-          />
-          {pwErr && <p style={{ fontSize: 10, fontWeight: 200, color: "#c47a5a", marginBottom: 16 }}>incorrect password</p>}
-          <button onClick={login}
-            style={{ background: "#1a1a1a", border: "none", color: "#fff", fontFamily: sans, fontSize: 10, fontWeight: 300, padding: "12px 24px", cursor: "pointer", letterSpacing: 1 }}>
-            enter →
-          </button>
+      <div style={{ height: "100vh", display: "flex", fontFamily: sans, background: "#fff" }}>
+        {/* Left — branding panel */}
+        <div style={{ width: "45%", background: "#f7f7f5", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "40px 48px" }}>
+          <img src="/jedda-logo.png" alt="Jedda" style={{ height: 16, width: "auto", display: "block", filter: "invert(1)" }} />
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb", letterSpacing: 1, lineHeight: 1.8 }}>recruitment dashboard</p>
+          </div>
+        </div>
+        {/* Right — login form */}
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px" }}>
+          <div style={{ width: 300 }}>
+            <p style={{ fontSize: 13, fontWeight: 300, color: "#1a1a1a", marginBottom: 32, letterSpacing: 0.3 }}>sign in to continue</p>
+            <div style={{ position: "relative", marginBottom: 20 }}>
+              <input
+                type={pwVisible ? "text" : "password"}
+                placeholder="password"
+                value={pw}
+                onChange={e => setPw(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && login()}
+                style={{ width: "100%", border: "none", borderBottom: `1px solid ${pwErr ? "#c47a5a" : "#e8e8e8"}`, padding: "10px 32px 10px 0", fontFamily: sans, fontSize: 13, fontWeight: 300, color: "#1a1a1a", background: "transparent", outline: "none" }}
+              />
+              <button
+                onClick={() => setPwVisible(v => !v)}
+                style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 0, color: "#ccc", fontFamily: sans, fontSize: 10, fontWeight: 300, letterSpacing: 0.5 }}>
+                {pwVisible ? "hide" : "show"}
+              </button>
+            </div>
+            {pwErr && <p style={{ fontSize: 10, fontWeight: 200, color: "#c47a5a", marginBottom: 16 }}>incorrect password</p>}
+            <button onClick={login}
+              style={{ background: "#1a1a1a", border: "none", color: "#fff", fontFamily: sans, fontSize: 10, fontWeight: 300, padding: "12px 28px", cursor: "pointer", letterSpacing: 1 }}>
+              enter →
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1206,8 +1225,8 @@ export default function AdminDashboard() {
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: sans, color: "#1a1a1a" }}>
       <div style={{ width: 196, flexShrink: 0, background: "#fff", borderRight: "1px solid #f0f0f0", display: "flex", flexDirection: "column", padding: "28px 0 20px", overflowY: "auto" }}>
-        <div style={{ padding: "0 22px 28px" }}>
-          <img src="/jedda-logo.png" alt="Jedda" style={{ height: 16, width: "auto", display: "block", filter: "invert(1)" }} />
+        <div style={{ padding: "0 22px 24px" }}>
+          <img src="/jedda-logo.png" alt="Jedda" style={{ height: 14, width: "auto", display: "block", filter: "invert(1)" }} />
         </div>
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>overview</div>
         <SbItem id="overview" label="all applicants" />
