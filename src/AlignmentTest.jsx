@@ -245,21 +245,32 @@ export default function AlignmentTest() {
 
   // ── SCREEN 0: Welcome ──
   if (screen === 0) return (
-    <Wrap prog={prog}>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+    <div style={{ position: "fixed", inset: 0, background: "#fafaf8", overflowY: "auto", fontFamily: sans, color: "#111" }}>
+      <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: 1, background: "#e8e8e4", zIndex: 100 }} />
+      <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "22px 40px" }}>
+        <Logo />
+      </nav>
+      {/* Photo strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr 1fr", gap: 3, padding: "0 40px", marginBottom: 40 }}>
+        {["14","15","16"].map((n, i) => (
+          <div key={n} style={{ aspectRatio: "3/4", overflow: "hidden", background: "#e0dbd4" }}>
+            <img src={`/${n}.jpg`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block", filter: "grayscale(20%)" }} />
+          </div>
+        ))}
+      </div>
+      {/* Content */}
+      <div style={{ padding: "0 40px 80px", maxWidth: 640 }}>
         <p style={eyebrow}>design division</p>
-        <h1 style={{ fontFamily: sans, fontSize: 48, fontWeight: 300, lineHeight: 1.15, color: "#111", marginBottom: 32 }}>
+        <h1 style={{ fontFamily: sans, fontSize: 42, fontWeight: 300, lineHeight: 1.15, color: "#111", marginBottom: 24 }}>
           Alignment Test.
         </h1>
-        <p style={{ fontSize: 13, fontWeight: 200, color: "#777", lineHeight: 1.9, marginBottom: 40, maxWidth: 420 }}>
+        <p style={{ fontSize: 13, fontWeight: 300, color: "#777", lineHeight: 1.9, marginBottom: 36, maxWidth: 400 }}>
           This is about how you see things — what you're drawn to, what you'd leave out, and whether your instincts align with where Jedda is going.
         </p>
-        <div>
-          <button className="at-btn" style={btn} onClick={() => go(1)}>begin →</button>
-          <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", letterSpacing: 1, marginTop: 14, display: "block" }}>7 questions · ~10 minutes</span>
-        </div>
+        <button className="at-btn" style={btn} onClick={() => go(1)}>begin →</button>
+        <span style={{ fontSize: 10, fontWeight: 300, color: "#bbb", letterSpacing: 1, marginTop: 14, display: "block" }}>7 questions · ~10 minutes</span>
       </div>
-    </Wrap>
+    </div>
   );
 
   // ── SCREEN 1: Visual picks ──
@@ -423,7 +434,7 @@ export default function AlignmentTest() {
       <p style={eyebrow}>07 / 07</p>
       <h2 style={titleStyle}>Make your <em style={{ fontStyle: "italic", color: "#888" }}>moodboard.</em></h2>
       <p style={sub}>Silhouettes, garments, anything that feels aligned with Jedda's direction — pull from Pinterest, Instagram, screenshots, anywhere.</p>
-      <p style={{ ...subSm, marginTop: -24 }}>Max 10 images. No need to name, explain, or tell us the story.</p>
+      <p style={{ ...subSm, marginTop: -24 }}>Compile your references into a single moodboard. Max 10 images. No need to name, explain, or tell us the story.</p>
       <input type="file" ref={fileRef} accept=".jpg,.jpeg,.png,.pdf" style={{ display: "none" }} onChange={handleFile} />
       <div className="at-ubox" onClick={() => fileRef.current?.click()}
         style={{ border: moodFileName ? "1px solid #111" : "1px dashed #d8d4ce", padding: "44px 24px", textAlign: "center", cursor: "pointer", transition: "border-color 0.25s", marginBottom: 14 }}>
