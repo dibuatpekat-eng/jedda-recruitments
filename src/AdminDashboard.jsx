@@ -414,8 +414,12 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
           <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
             {[
               ["position", app.position],
+              ...(getDivision(app.position) === "design" && app.fd_sub ? [["division", app.fd_sub]] : []),
+              ...(getDivision(app.position) === "design" && app.fd_specs ? [["specialization", app.fd_specs]] : []),
               ["work type", app.work_type],
               ["city", app.city],
+              ["open to bandung", app.bandung],
+              ["on-site", app.onsite],
               ["phone", app.phone],
               ["email", app.email],
               ["availability", app.availability],
@@ -742,13 +746,12 @@ function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
       </div>
       <DivFilter allApps={all} active={div} onChange={setDiv} />
       <Tbl>
-        {/* FIX: kolom proporsional */}
-        <THead cols="1fr 1.2fr 90px 180px">
+        <THead cols="220px 1fr 90px 180px">
           <TH>name</TH><TH>position</TH><TH>type</TH><TH>alignment test</TH>
         </THead>
         {filtered.length === 0 ? <Empty msg="no one shortlisted yet" /> :
           filtered.map(a => (
-            <TRow key={a.id} cols="1fr 1.2fr 90px 180px" onClick={() => setPanelApp(a)}>
+            <TRow key={a.id} cols="220px 1fr 90px 180px" onClick={() => setPanelApp(a)}>
               <TName name={a.full_name} sub={a.city} />
               <TPos>{a.position?.toLowerCase()}</TPos>
               <Badge wt={a.work_type} />
@@ -790,12 +793,12 @@ function EvaluatingPage({ apps, setEvaluatingApp, showToast }) {
       <DivFilter allApps={all} active={div} onChange={setDiv} />
       <Tbl>
         {/* FIX: kolom proporsional */}
-        <THead cols="1fr 1.2fr 90px 80px 200px">
+        <THead cols="220px 1fr 90px 72px 160px">
           <TH>name</TH><TH>position</TH><TH>type</TH><TH>score</TH><TH>test status</TH>
         </THead>
         {filtered.length === 0 ? <Empty msg="no one being evaluated yet" /> :
           filtered.map(a => (
-            <TRow key={a.id} cols="1fr 1.2fr 90px 80px 200px" onClick={() => setEvaluatingApp(a)}>
+            <TRow key={a.id} cols="220px 1fr 90px 72px 160px" onClick={() => setEvaluatingApp(a)}>
               <TName name={a.full_name} sub={a.city} />
               <TPos>{a.position?.toLowerCase()}</TPos>
               <Badge wt={a.work_type} />
@@ -1070,7 +1073,7 @@ export default function AdminDashboard() {
     return (
       <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, background: "#f7f7f5" }}>
         <div style={{ width: 280 }}>
-          <p style={{ fontSize: 10, fontWeight: 400, letterSpacing: 4, textTransform: "uppercase", marginBottom: 32 }}>jedda</p>
+          <img src="/jedda-logo.png" alt="Jedda" style={{ height: 22, width: "auto", display: "block", filter: "invert(1)", marginBottom: 36 }} />
           <input
             type="password" placeholder="password" value={pw}
             onChange={e => setPw(e.target.value)}
@@ -1203,7 +1206,9 @@ export default function AdminDashboard() {
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: sans, color: "#1a1a1a" }}>
       <div style={{ width: 196, flexShrink: 0, background: "#fff", borderRight: "1px solid #f0f0f0", display: "flex", flexDirection: "column", padding: "28px 0 20px", overflowY: "auto" }}>
-        <div style={{ fontSize: 10, fontWeight: 400, letterSpacing: 4, color: "#1a1a1a", padding: "0 22px 28px", textTransform: "uppercase" }}>jedda</div>
+        <div style={{ padding: "0 22px 28px" }}>
+          <img src="/jedda-logo.png" alt="Jedda" style={{ height: 16, width: "auto", display: "block", filter: "invert(1)" }} />
+        </div>
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>overview</div>
         <SbItem id="overview" label="all applicants" />
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
