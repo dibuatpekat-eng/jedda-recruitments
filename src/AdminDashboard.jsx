@@ -1079,16 +1079,16 @@ export default function AdminDashboard() {
 
   if (!authed) {
     return (
-      <div style={{ height: "100vh", display: "flex", fontFamily: sans, background: "#fff" }}>
-        {/* Left panel */}
-        <div style={{ width: "46%", background: "#f7f7f5", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "36px 40px" }}>
-          <span style={{ fontSize: 13, fontWeight: 400, letterSpacing: 5, textTransform: "uppercase", color: "#1a1a1a" }}>Jedda</span>
-          <span style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2.5, textTransform: "uppercase", color: "#bbb" }}>recruitment dashboard</span>
+      <div style={{ height: "100vh", display: "flex", fontFamily: sans, background: "#111" }}>
+        {/* Left */}
+        <div style={{ width: "46%", borderRight: "1px solid #222", display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 48px" }}>
+          <img src="/logoo.png" alt="Jedda" style={{ height: 20, width: "auto", display: "block", filter: "invert(1)" }} />
+          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#444" }}>recruitment dashboard</p>
         </div>
-        {/* Right panel */}
+        {/* Right */}
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ width: 280 }}>
-            <p style={{ fontSize: 12, fontWeight: 300, color: "#aaa", marginBottom: 28, letterSpacing: 0.3 }}>sign in to continue</p>
+          <div style={{ width: 240 }}>
+            <p style={{ fontSize: 11, fontWeight: 300, color: "#555", marginBottom: 24, letterSpacing: 0.3 }}>sign in to continue</p>
             <div style={{ position: "relative", marginBottom: pwErr ? 12 : 20 }}>
               <input
                 type={pwVisible ? "text" : "password"}
@@ -1096,16 +1096,16 @@ export default function AdminDashboard() {
                 value={pw}
                 onChange={e => setPw(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && login()}
-                style={{ width: "100%", border: "none", borderBottom: `1px solid ${pwErr ? "#c47a5a" : "#e8e8e8"}`, padding: "10px 40px 10px 0", fontFamily: sans, fontSize: 13, fontWeight: 300, color: "#1a1a1a", background: "transparent", outline: "none" }}
+                style={{ width: "100%", border: "none", borderBottom: `1px solid ${pwErr ? "#c47a5a" : "#333"}`, padding: "8px 40px 8px 0", fontFamily: sans, fontSize: 13, fontWeight: 300, color: "#fff", background: "transparent", outline: "none" }}
               />
               <button onClick={() => setPwVisible(v => !v)}
-                style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 0, color: "#ccc", fontFamily: sans, fontSize: 10, fontWeight: 300, letterSpacing: 0.5 }}>
+                style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 0, color: "#444", fontFamily: sans, fontSize: 10, fontWeight: 300, letterSpacing: 0.5 }}>
                 {pwVisible ? "hide" : "show"}
               </button>
             </div>
             {pwErr && <p style={{ fontSize: 10, fontWeight: 200, color: "#c47a5a", marginBottom: 16 }}>incorrect password</p>}
             <button onClick={login}
-              style={{ background: "#1a1a1a", border: "none", color: "#fff", fontFamily: sans, fontSize: 10, fontWeight: 300, padding: "11px 24px", cursor: "pointer", letterSpacing: 1 }}>
+              style={{ background: "#fff", border: "none", color: "#111", fontFamily: sans, fontSize: 10, fontWeight: 400, padding: "10px 22px", cursor: "pointer", letterSpacing: 1 }}>
               enter →
             </button>
           </div>
@@ -1231,7 +1231,7 @@ export default function AdminDashboard() {
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: sans, color: "#1a1a1a" }}>
       <div style={{ width: 196, flexShrink: 0, background: "#fff", borderRight: "1px solid #f0f0f0", display: "flex", flexDirection: "column", padding: "28px 0 20px", overflowY: "auto" }}>
         <div style={{ padding: "0 22px 20px" }}>
-          <span style={{ fontSize: 13, fontWeight: 400, letterSpacing: 5, textTransform: "uppercase", color: "#1a1a1a" }}>Jedda</span>
+          <img src="/logoo.png" alt="Jedda" style={{ height: 14, width: "auto", display: "block" }} />
         </div>
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>overview</div>
         <SbItem id="overview" label="all applicants" />
