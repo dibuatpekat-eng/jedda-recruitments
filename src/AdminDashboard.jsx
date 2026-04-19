@@ -575,10 +575,15 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
   ].filter(([, v]) => v);
 
   const moveBackOptions = {
-    "shortlisted":  [{ label: "← pending review", status: "new" }, { label: "on hold", status: "on hold" }],
-    "on hold":      [{ label: "← pending review", status: "new" }],
-    "evaluating":   [{ label: "← shortlisted", status: "shortlisted" }],
-    "finalist":     [{ label: "← evaluating", status: "evaluating" }, { label: "← shortlisted", status: "shortlisted" }],
+    "new":            [],
+    "on hold":        [{ label: "← pending review", status: "new" }],
+    "shortlisted":    [{ label: "← pending review", status: "new" }, { label: "on hold", status: "on hold" }],
+    "evaluating":     [{ label: "← pending review", status: "new" }, { label: "← shortlisted", status: "shortlisted" }],
+    "finalist":       [{ label: "← pending review", status: "new" }, { label: "← evaluating", status: "evaluating" }, { label: "← shortlisted", status: "shortlisted" }],
+    "interview":      [{ label: "← pending review", status: "new" }, { label: "← finalist", status: "finalist" }],
+    "the final team": [{ label: "← pending review", status: "new" }],
+    "rejected":       [{ label: "← pending review", status: "new" }],
+    "referred out":   [{ label: "← pending review", status: "new" }],
   };
   const moveOpts = moveBackOptions[app.status] || [];
   const canReferOut = ["new", "on hold", "shortlisted", "evaluating", "finalist"].includes(app.status);
