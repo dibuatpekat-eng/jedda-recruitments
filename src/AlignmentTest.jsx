@@ -48,10 +48,10 @@ const errStyle = { color: "#c47a5a", fontSize: 10, fontWeight: 300, marginTop: 1
 const inputStyle = { border: "none", background: "transparent", fontFamily: sans, fontSize: 14, fontWeight: 300, color: "#111", width: "100%", padding: 0 };
 const inputSmStyle = { border: "none", background: "transparent", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#999", padding: 0, textAlign: "right" };
 
-// Logo — spaced letterform matching App.jsx
+// Logo — PNG image, same height as the text it replaces
 function Logo() {
   return (
-    <span style={{ fontSize: 11, fontWeight: 300, letterSpacing: 5, textTransform: "uppercase", fontFamily: sans }}>J E D D A</span>
+    <img src="/jedda-logo.png" alt="Jedda" style={{ height: 13, width: "auto", display: "block", filter: "invert(1)" }} />
   );
 }
 
@@ -71,18 +71,8 @@ function Wrap({ children, prog }) {
   );
 }
 
-const P_ITEMS = [
-  { bg: "#e2ddd7", svg: <svg width="50" height="114" viewBox="0 0 50 114" fill="none"><ellipse cx="25" cy="11" rx="9" ry="9" fill="#9a9490" opacity=".5"/><rect x="15" y="22" width="20" height="46" rx="1" fill="#9a9490" opacity=".45"/><rect x="6" y="24" width="10" height="32" rx="5" fill="#9a9490" opacity=".35"/><rect x="34" y="24" width="10" height="32" rx="5" fill="#9a9490" opacity=".35"/><rect x="15" y="66" width="9" height="40" rx="2" fill="#9a9490" opacity=".45"/><rect x="26" y="66" width="9" height="40" rx="2" fill="#9a9490" opacity=".45"/></svg> },
-  { bg: "#cec9c2", svg: <svg width="54" height="114" viewBox="0 0 54 114" fill="none"><ellipse cx="27" cy="11" rx="10" ry="9" fill="#7a756e" opacity=".45"/><path d="M12 22 Q27 17 42 22 L45 68 Q27 72 9 68 Z" fill="#7a756e" opacity=".4"/><rect x="4" y="24" width="9" height="28" rx="4" fill="#7a756e" opacity=".35"/><rect x="41" y="24" width="9" height="28" rx="4" fill="#7a756e" opacity=".35"/><rect x="13" y="66" width="11" height="42" rx="2" fill="#7a756e" opacity=".4"/><rect x="30" y="66" width="11" height="42" rx="2" fill="#7a756e" opacity=".4"/></svg> },
-  { bg: "#dbd5cd", svg: <svg width="46" height="114" viewBox="0 0 46 114" fill="none"><ellipse cx="23" cy="10" rx="8" ry="8" fill="#908880" opacity=".45"/><rect x="14" y="20" width="15" height="54" rx="1" fill="#908880" opacity=".4"/><rect x="5" y="22" width="10" height="34" rx="4" fill="#908880" opacity=".35"/><rect x="31" y="22" width="10" height="34" rx="4" fill="#908880" opacity=".35"/><path d="M14 72 L9 112 L19 112 L23 86 L27 112 L37 112 L32 72 Z" fill="#908880" opacity=".4"/></svg> },
-  { bg: "#c4bfb8", svg: <svg width="52" height="114" viewBox="0 0 52 114" fill="none"><ellipse cx="26" cy="10" rx="9" ry="9" fill="#6e6960" opacity=".45"/><path d="M10 20 Q26 15 42 20 L43 60 L9 60 Z" fill="#6e6960" opacity=".4"/><rect x="3" y="22" width="8" height="26" rx="4" fill="#6e6960" opacity=".35"/><rect x="41" y="22" width="8" height="26" rx="4" fill="#6e6960" opacity=".35"/><path d="M11 58 Q15 84 11 112 L23 112 Q25 88 26 78 Q27 88 29 112 L41 112 Q37 84 41 58 Z" fill="#6e6960" opacity=".4"/></svg> },
-  { bg: "#d5d0c9", svg: <svg width="48" height="114" viewBox="0 0 48 114" fill="none"><ellipse cx="24" cy="10" rx="8" ry="8" fill="#888079" opacity=".45"/><rect x="16" y="20" width="16" height="29" rx="1" fill="#888079" opacity=".4"/><rect x="6" y="22" width="11" height="23" rx="4" fill="#888079" opacity=".35"/><rect x="31" y="22" width="11" height="23" rx="4" fill="#888079" opacity=".35"/><path d="M15 47 L4 112 L17 112 L24 70 L31 112 L44 112 L33 47 Z" fill="#888079" opacity=".4"/></svg> },
-  { bg: "#cac4bc", svg: <svg width="50" height="114" viewBox="0 0 50 114" fill="none"><ellipse cx="25" cy="10" rx="9" ry="9" fill="#787068" opacity=".45"/><path d="M10 20 Q25 14 40 20 L42 57 L8 57 Z" fill="#787068" opacity=".4"/><rect x="3" y="22" width="8" height="25" rx="4" fill="#787068" opacity=".35"/><rect x="39" y="22" width="8" height="25" rx="4" fill="#787068" opacity=".35"/><rect x="9" y="55" width="13" height="54" rx="2" fill="#787068" opacity=".4"/><rect x="28" y="55" width="13" height="54" rx="2" fill="#787068" opacity=".4"/></svg> },
-  { bg: "#d8d2ca", svg: <svg width="52" height="114" viewBox="0 0 52 114" fill="none"><ellipse cx="26" cy="10" rx="9" ry="9" fill="#847c74" opacity=".45"/><path d="M8 20 Q26 13 44 20 L44 50 Q26 56 8 50 Z" fill="#847c74" opacity=".4"/><rect x="3" y="22" width="7" height="22" rx="3" fill="#847c74" opacity=".35"/><rect x="42" y="22" width="7" height="22" rx="3" fill="#847c74" opacity=".35"/><path d="M10 50 L6 112 L20 112 L26 72 L32 112 L46 112 L42 50 Z" fill="#847c74" opacity=".4"/></svg> },
-  { bg: "#c8c2ba", svg: <svg width="48" height="114" viewBox="0 0 48 114" fill="none"><ellipse cx="24" cy="10" rx="8" ry="8" fill="#726c64" opacity=".45"/><rect x="15" y="20" width="18" height="36" rx="8" fill="#726c64" opacity=".4"/><rect x="5" y="22" width="11" height="24" rx="5" fill="#726c64" opacity=".35"/><rect x="32" y="22" width="11" height="24" rx="5" fill="#726c64" opacity=".35"/><rect x="16" y="54" width="7" height="52" rx="2" fill="#726c64" opacity=".4"/><rect x="25" y="54" width="7" height="52" rx="2" fill="#726c64" opacity=".4"/></svg> },
-  { bg: "#d2cdc6", svg: <svg width="50" height="114" viewBox="0 0 50 114" fill="none"><ellipse cx="25" cy="10" rx="9" ry="9" fill="#7e7870" opacity=".45"/><path d="M14 20 L36 20 L40 62 L10 62 Z" fill="#7e7870" opacity=".4"/><rect x="3" y="23" width="12" height="26" rx="5" fill="#7e7870" opacity=".35"/><rect x="35" y="23" width="12" height="26" rx="5" fill="#7e7870" opacity=".35"/><rect x="12" y="60" width="10" height="50" rx="2" fill="#7e7870" opacity=".4"/><rect x="28" y="60" width="10" height="50" rx="2" fill="#7e7870" opacity=".4"/></svg> },
-  { bg: "#c6c0b8", svg: <svg width="54" height="114" viewBox="0 0 54 114" fill="none"><ellipse cx="27" cy="10" rx="10" ry="9" fill="#706a62" opacity=".45"/><path d="M9 20 Q27 14 45 20 Q48 38 45 58 Q27 64 9 58 Q6 38 9 20 Z" fill="#706a62" opacity=".4"/><rect x="2" y="24" width="8" height="20" rx="4" fill="#706a62" opacity=".3"/><rect x="44" y="24" width="8" height="20" rx="4" fill="#706a62" opacity=".3"/><rect x="11" y="57" width="12" height="52" rx="2" fill="#706a62" opacity=".4"/><rect x="31" y="57" width="12" height="52" rx="2" fill="#706a62" opacity=".4"/></svg> },
-];
+// Photos in order 1–10, loaded from public/
+const P_ITEMS = [1,2,3,4,5,6,7,8,9,10].map(n => ({ src: `/${n}.jpg` }));
 
 export default function AlignmentTest() {
   const applicantId = new URLSearchParams(window.location.search).get("id");
@@ -253,7 +243,10 @@ export default function AlignmentTest() {
   if (screen === 0) return (
     <Wrap prog={prog}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <p style={eyebrow}>alignment test</p>
+        <p style={eyebrow}>for design division candidates</p>
+        <h1 style={{ fontFamily: serif, fontSize: 52, fontWeight: 300, lineHeight: 1.15, color: "#111", marginBottom: 32 }}>
+          Alignment<br /><em style={{ fontStyle: "italic", color: "#888" }}>Test.</em>
+        </h1>
         <p style={{ fontSize: 13, fontWeight: 200, color: "#777", lineHeight: 1.9, marginBottom: 40, maxWidth: 420 }}>
           This is about how you see things — what you're drawn to, what you'd leave out, and whether your instincts align with where Jedda is going.
         </p>
@@ -283,8 +276,8 @@ export default function AlignmentTest() {
             <div key={num}
               className={`at-pitem${isSel ? " selected" : ""}${isDimmed ? " dimmed" : ""}`}
               onClick={() => pick(num)}
-              style={{ aspectRatio: "3/4", position: "relative", cursor: "pointer", overflow: "hidden", background: p.bg, outline: isSel ? "1.5px solid #111" : "none", outlineOffset: -1, opacity: isDimmed ? 0.25 : 1 }}>
-              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>{p.svg}</div>
+              style={{ aspectRatio: "3/4", position: "relative", cursor: "pointer", overflow: "hidden", background: "#e8e8e4", outline: isSel ? "1.5px solid #111" : "none", outlineOffset: -1, opacity: isDimmed ? 0.25 : 1 }}>
+              <img src={p.src} alt={`look ${num}`} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block" }} />
               <span style={{ position: "absolute", bottom: 7, left: 9, fontSize: 8, fontWeight: 200, letterSpacing: 1.5, color: "rgba(255,255,255,0.4)" }}>{String(num).padStart(2, "0")}</span>
               <div className="at-pcheck" style={{ position: "absolute", top: 7, right: 7, width: 17, height: 17, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", opacity: isSel ? 1 : 0, transition: "opacity 0.2s" }}>
                 <svg viewBox="0 0 9 7" fill="none" width="8" height="8"><path d="M1 3.5l2.5 2.5L8 1" stroke="white" strokeWidth="1.5" /></svg>
