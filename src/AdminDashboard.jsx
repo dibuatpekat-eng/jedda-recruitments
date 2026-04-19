@@ -28,7 +28,7 @@ function scoreQ1(visualPicks) {
   const correct = picks.filter(p => CORRECT_PICKS.includes(p)).length;
   if (correct === 3) return 100;
   if (correct === 2) return 75;
-  if (correct === 1) return 40;
+  if (correct === 1) return 60;
   return 0;
 }
 
@@ -278,13 +278,51 @@ function ScoreRow({ qKey, label, autoScore, manualScores, setManualScores }) {
   );
 }
 
+// ─── Scoring Sidebar — HARUS di luar EvaluatingDetail ──────
+function ScoringSidebar({ autoQ1, autoQ3, manualScores, setManualScores, total, totalColor, saving, saveScores, onPass, onFail }) {
+  return (
+    <div style={{ position: "sticky", top: 36, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 14 }}>scoring</p>
+        <ScoreRow qKey="q1" label="Q1 visual" autoScore={autoQ1} manualScores={manualScores} setManualScores={setManualScores} />
+        <ScoreRow qKey="q2" label="Q2 empathy" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
+        <ScoreRow qKey="q3" label="Q3 ranking" autoScore={autoQ3} manualScores={manualScores} setManualScores={setManualScores} />
+        <ScoreRow qKey="q4" label="Q4 local brands" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
+        <ScoreRow qKey="q5" label="Q5 intl brands" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
+        <ScoreRow qKey="q6" label="Q6 dimension" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
+        <ScoreRow qKey="q7" label="Q7 moodboard" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #f0f0f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 2, textTransform: "uppercase" }}>total</span>
+          <span style={{ fontSize: 22, fontWeight: 300, color: totalColor }}>{total != null ? total : "—"}</span>
+        </div>
+        <button onClick={saveScores} disabled={saving}
+          style={{ marginTop: 14, width: "100%", background: "#1a1a1a", border: "none", color: "#fff", fontFamily: sans, fontSize: 10, fontWeight: 300, padding: "10px 0", cursor: saving ? "default" : "pointer", letterSpacing: 1, opacity: saving ? 0.5 : 1 }}>
+          {saving ? "saving..." : "save scores"}
+        </button>
+      </div>
+      <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 14 }}>decision</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <button onClick={onPass}
+            style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer", textAlign: "left" }}>
+            move to finalist →
+          </button>
+          <button onClick={onFail}
+            style={{ background: "none", border: "none", borderBottom: "1px solid #f0e8e4", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#c47a5a", cursor: "pointer", textAlign: "left" }}>
+            reject
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Evaluating Detail ──────────────────────────────────────
 function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
   const [atData, setAtData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [manualScores, setManualScores] = useState({ q2: "", q4: "", q5: "", q6: "", q7: "" });
   const [saving, setSaving] = useState(false);
-  // FIX: tab profile | answers
   const [tab, setTab] = useState("answers");
 
   useEffect(() => {
@@ -347,43 +385,6 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
     </div>
   );
 
-  // Scoring sidebar — reused in both tabs
-  const ScoringSidebar = () => (
-    <div style={{ position: "sticky", top: 36, display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
-        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 14 }}>scoring</p>
-        <ScoreRow qKey="q1" label="Q1 visual" autoScore={autoQ1} manualScores={manualScores} setManualScores={setManualScores} />
-        <ScoreRow qKey="q2" label="Q2 empathy" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
-        <ScoreRow qKey="q3" label="Q3 ranking" autoScore={autoQ3} manualScores={manualScores} setManualScores={setManualScores} />
-        <ScoreRow qKey="q4" label="Q4 local brands" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
-        <ScoreRow qKey="q5" label="Q5 intl brands" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
-        <ScoreRow qKey="q6" label="Q6 dimension" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
-        <ScoreRow qKey="q7" label="Q7 moodboard" autoScore={null} manualScores={manualScores} setManualScores={setManualScores} />
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #f0f0f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 2, textTransform: "uppercase" }}>total</span>
-          <span style={{ fontSize: 22, fontWeight: 300, color: totalColor }}>{total != null ? total : "—"}</span>
-        </div>
-        <button onClick={saveScores} disabled={saving}
-          style={{ marginTop: 14, width: "100%", background: "#1a1a1a", border: "none", color: "#fff", fontFamily: sans, fontSize: 10, fontWeight: 300, padding: "10px 0", cursor: saving ? "default" : "pointer", letterSpacing: 1, opacity: saving ? 0.5 : 1 }}>
-          {saving ? "saving..." : "save scores"}
-        </button>
-      </div>
-      <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
-        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 14 }}>decision</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <button onClick={onPass}
-            style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer", textAlign: "left" }}>
-            move to finalist →
-          </button>
-          <button onClick={onFail}
-            style={{ background: "none", border: "none", borderBottom: "1px solid #f0e8e4", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#c47a5a", cursor: "pointer", textAlign: "left" }}>
-            reject
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div style={{ padding: "36px 40px", fontFamily: sans, color: "#1a1a1a" }}>
       <button onClick={onBack} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer", marginBottom: 28, padding: 0 }}>← back to evaluating</button>
@@ -439,7 +440,7 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
               </div>
             )}
           </div>
-          <ScoringSidebar />
+          <ScoringSidebar autoQ1={autoQ1} autoQ3={autoQ3} manualScores={manualScores} setManualScores={setManualScores} total={total} totalColor={totalColor} saving={saving} saveScores={saveScores} onPass={onPass} onFail={onFail} />
         </div>
       ) : (
       /* Tab — Answers */
@@ -549,7 +550,7 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
           </div>
 
         </div>
-        <ScoringSidebar />
+        <ScoringSidebar autoQ1={autoQ1} autoQ3={autoQ3} manualScores={manualScores} setManualScores={setManualScores} total={total} totalColor={totalColor} saving={saving} saveScores={saveScores} onPass={onPass} onFail={onFail} />
       </div>
       )}
     </div>
