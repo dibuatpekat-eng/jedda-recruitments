@@ -401,7 +401,7 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
         </div>
       </div>
 
-      {/* FIX: Tabs profile | answers */}
+      {/* Tabs profile | answers */}
       <div style={{ display: "flex", borderBottom: "1px solid #f0f0f0", marginBottom: 24 }}>
         {["profile", "answers"].map(t => (
           <button key={t} onClick={() => setTab(t)}
@@ -411,7 +411,7 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
         ))}
       </div>
 
-      {/* FIX: Tab — Profile */}
+      {/* Tab — Profile */}
       {tab === "profile" ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 268px", gap: 24, alignItems: "start" }}>
           <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
@@ -447,7 +447,7 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 268px", gap: 24, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
-          {/* Q1 — FIX: tampilkan hanya foto yang dipilih, scoring 100/75/40/0 */}
+          {/* Q1 */}
           <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb" }}>Q1 — visual instinct · 15%</p>
@@ -653,28 +653,106 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
 }
 
 // ─── Interview Modal ────────────────────────────────────────
+const OFFLINE_LOCATION = "Fragment Project — Jl. Ir. H. Juanda No.23, Bandung";
+const OFFLINE_MAPS_URL = "https://share.google/D3ep92gL1rmffWXYZ";
+
+function buildInterviewEmail(app, mode, dt) {
+  const firstName = app.full_name.split(" ")[0];
+  const d = dt ? new Date(dt) : null;
+  const dateStr = d ? d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "[date]";
+  const timeStr = d ? d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "[time]";
+
+  if (mode === "offline") {
+    return `Hi ${firstName},
+
+Congratulations — you've made it to the interview stage.
+
+We received hundreds of applications, and we're glad yours stood out. Before we finalize the team, we'd like to meet you in person — just a casual conversation to get a better sense of who you are and how you'd fit into the Jedda environment.
+
+Interview details:
+When: ${dateStr} at ${timeStr}
+Where: ${OFFLINE_LOCATION}
+Get directions: ${OFFLINE_MAPS_URL}
+
+Please reply to confirm whether this time works for you. If it doesn't, let us know and we'll find another slot.
+
+See you there,
+Jedda.`;
+  } else {
+    return `Hi ${firstName},
+
+Congratulations — you've made it to the interview stage.
+
+We received hundreds of applications, and we're glad yours stood out. Before we finalize the team, we'd like to have a conversation with you — just a casual call to get a better sense of who you are and how you'd fit into the Jedda environment.
+
+We're proposing the following time slot for our online interview:
+${dateStr} at ${timeStr}
+
+Please reply to confirm whether this works for you. If it doesn't, let us know and we'll find another slot. Once confirmed, we'll send over the meeting link.
+
+See you soon,
+Jedda.`;
+  }
+}
+
 function InterviewModal({ app, onClose, onConfirm }) {
+  const [mode, setMode] = useState("offline");
   const [dt, setDt] = useState("");
   if (!app) return null;
-  const d = dt ? new Date(dt) : null;
-  const dateStr = d ? d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "";
-  const timeStr = d ? d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
-  const preview = d
-    ? `Hi ${app.full_name.split(" ")[0]},\n\nCongratulations — you've been selected for an interview with Jedda.\n\nYour interview is scheduled for:\n${dateStr} at ${timeStr}\n\nWe'll share more details shortly.\n\n— Jedda Team`
-    : "select a date first.";
+
+  const preview = dt
+    ? buildInterviewEmail(app, mode, dt)
+    : "select a date & time first.";
+
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.12)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 420, border: "1px solid #f0f0f0", fontFamily: sans }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 480, border: "1px solid #f0f0f0", fontFamily: sans, maxHeight: "90vh", overflowY: "auto" }}>
         <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>schedule interview</p>
         <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 24 }}>{app.full_name} — {app.position?.toLowerCase()}</p>
+
+        {/* Mode toggle */}
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>interview type</p>
+        <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
+          {["offline", "online"].map((m, i) => (
+            <button key={m} onClick={() => setMode(m)}
+              style={{
+                flex: 1, padding: "9px 0", border: "none", borderRight: i === 0 ? "1px solid #f0f0f0" : "none",
+                background: mode === m ? "#1a1a1a" : "#fff",
+                color: mode === m ? "#fff" : "#bbb",
+                fontFamily: sans, fontSize: 11, fontWeight: 300, cursor: "pointer",
+                transition: "all 0.15s", letterSpacing: 0.5
+              }}>
+              {m}
+            </button>
+          ))}
+        </div>
+
+        {/* Offline location info */}
+        {mode === "offline" && (
+          <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "12px 14px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 4 }}>location</p>
+              <p style={{ fontSize: 11, fontWeight: 300, color: "#555" }}>Fragment Project, Jl. Ir. H. Juanda No.23</p>
+            </div>
+            <a href={OFFLINE_MAPS_URL} target="_blank" rel="noreferrer"
+              style={{ fontSize: 10, fontWeight: 300, color: "#999", textDecoration: "none", borderBottom: "1px solid #ddd", paddingBottom: 1, whiteSpace: "nowrap", marginLeft: 12 }}>
+              maps →
+            </a>
+          </div>
+        )}
+
+        {/* Date & time */}
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>date & time</p>
         <input type="datetime-local" value={dt} onChange={e => setDt(e.target.value)}
           style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 22 }} />
+
+        {/* Email preview */}
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
         <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, minHeight: 80, whiteSpace: "pre-wrap" }}>{preview}</div>
+
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
-          <button onClick={() => { if (!dt) return; onConfirm(dt); }} style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>send email →</button>
+          <button onClick={() => { if (!dt) return; onConfirm(dt, mode); }} style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer", opacity: dt ? 1 : 0.3 }}>send email →</button>
         </div>
       </div>
     </div>
@@ -787,7 +865,6 @@ function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
   );
 }
 
-// FIX: EvaluatingPage dapat showToast untuk resend, kolom proporsional
 function EvaluatingPage({ apps, setEvaluatingApp, showToast }) {
   const [div, setDiv] = useState("all");
   const all = apps.filter(a => a.status === "evaluating");
@@ -810,7 +887,6 @@ function EvaluatingPage({ apps, setEvaluatingApp, showToast }) {
               <TPos>{a.position?.toLowerCase()}</TPos>
               <Badge wt={a.work_type} />
               <ScoreChip score={a.score_total ?? null} />
-              {/* FIX: awaiting bisa resend */}
               <div onClick={e => e.stopPropagation()}>
                 {a.alignment_test_submitted
                   ? <span style={{ fontSize: 10, fontWeight: 300, color: "#6a9e76" }}>submitted ✓</span>
@@ -1077,13 +1153,15 @@ export default function AdminDashboard() {
     rejected: apps.filter(a => a.status === "rejected").length,
   };
 
+  // ─── Login page ───────────────────────────────────────────
   if (!authed) {
     return (
       <div style={{ height: "100vh", display: "flex", fontFamily: sans, background: "#111" }}>
         {/* Left */}
         <div style={{ width: "46%", borderRight: "1px solid #222", display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 48px" }}>
-          <img src="/logoo.png" alt="Jedda" style={{ height: 20, width: "auto", display: "block", filter: "invert(1)" }} />
-          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#444" }}>recruitment dashboard</p>
+          {/* FIX: logo stretch — pakai maxWidth agar proporsional */}
+          <img src="/logoo.png" alt="Jedda" style={{ height: 20, width: "auto", maxWidth: 160, display: "block", filter: "invert(1)", objectFit: "contain" }} />
+          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#444", marginTop: 8 }}>recruitment dashboard</p>
         </div>
         {/* Right */}
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1269,13 +1347,9 @@ export default function AdminDashboard() {
         <InterviewModal
           app={interviewApp}
           onClose={() => setInterviewApp(null)}
-          onConfirm={(dt) => {
-            const link = `https://careers.jeddawear.com`;
-            const d = new Date(dt);
-            const dateStr = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-            const timeStr = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-            const body = `Hi ${interviewApp.full_name.split(" ")[0]},\n\nCongratulations — you've been selected for an interview with Jedda.\n\nYour interview is scheduled for:\n${dateStr} at ${timeStr}\n\nWe'll share more details shortly.\n\n— Jedda Team`;
-            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(interviewApp.email)}&su=Your%20Jedda%20Interview&body=${encodeURIComponent(body)}`, "_blank");
+          onConfirm={(dt, mode) => {
+            const body = buildInterviewEmail(interviewApp, mode, dt);
+            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(interviewApp.email)}&su=Congratulations%2C%20${encodeURIComponent(interviewApp.full_name.split(" ")[0])}%20%E2%80%94%20you%27re%20in%20the%20next%20round&body=${encodeURIComponent(body)}`, "_blank");
             updateStatus(interviewApp.id, "interview", { interview_date: dt });
             setInterviewApp(null);
             showToast("interview scheduled ✓");
