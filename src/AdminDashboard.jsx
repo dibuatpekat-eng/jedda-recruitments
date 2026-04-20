@@ -959,15 +959,20 @@ function InterviewPage({ apps, updateStatus, showToast }) {
       </div>
       <DivFilter allApps={all} active={div} onChange={setDiv} />
       <Tbl>
-        <THead cols="1fr 1fr 80px 140px 160px">
+        <THead cols="1fr 1fr 80px 140px 1fr">
           <TH>name</TH><TH>position</TH><TH>type</TH><TH>date</TH><TH>action</TH>
         </THead>
         {filtered.length === 0 ? <Empty msg="no interviews scheduled yet" /> :
           filtered.map(a => {
             const d = a.interview_date ? new Date(a.interview_date) : null;
             const dateLabel = d ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—";
+            const resendEmail = () => {
+              const body = buildInterviewEmail(a, a.interview_mode || "offline", a.interview_date);
+              window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=${encodeURIComponent(a.full_name.split(" ")[0])}%2C%20we%27d%20like%20to%20meet%20you.&body=${encodeURIComponent(body)}`, "_blank");
+              showToast("email reopened ✓");
+            };
             return (
-              <TRow key={a.id} cols="1fr 1fr 80px 140px 160px">
+              <TRow key={a.id} cols="1fr 1fr 80px 140px 1fr">
                 <TName name={a.full_name} sub={a.city} />
                 <TPos>{a.position?.toLowerCase()}</TPos>
                 <Badge wt={a.work_type} />
@@ -976,6 +981,7 @@ function InterviewPage({ apps, updateStatus, showToast }) {
                   <ActionRow actions={[
                     { label: "passed →", cls: "primary", onClick: () => { updateStatus(a.id, "the final team", { acceptance_sent: false }); showToast("→ the final team"); } },
                     { label: "did not pass", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
+                    { label: "resend email", onClick: resendEmail },
                   ]} />
                 </div>
               </TRow>
@@ -1106,6 +1112,8 @@ export default function AdminDashboard() {
   const [evaluatingApp, setEvaluatingApp] = useState(null);
   const [newPosFilter, setNewPosFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [overviewDiv, setOverviewDiv] = useState("all");
+  const [ovSearch, setOvSearch] = useState("");
   const [toast, setToast] = useState("");
   const toastTimer = useRef(null);
 
@@ -1168,7 +1176,6 @@ export default function AdminDashboard() {
         {/* Right */}
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ width: 240 }}>
-            <p style={{ fontSize: 11, fontWeight: 300, color: "#555", marginBottom: 24, letterSpacing: 0.3 }}>sign in to continue</p>
             <div style={{ position: "relative", marginBottom: pwErr ? 12 : 20 }}>
               <input
                 type={pwVisible ? "text" : "password"}
@@ -1227,6 +1234,13 @@ export default function AdminDashboard() {
     switch (page) {
       case "overview": {
         const inPipeline = apps.filter(a => ["shortlisted","evaluating","finalist","interview"].includes(a.status)).length;
+        const filteredOverview = apps
+          .filter(a => overviewDiv === "all" || getDivision(a.position) === overviewDiv)
+          .filter(a => {
+            if (!ovSearch) return true;
+            const q = ovSearch.toLowerCase();
+            return (a.full_name || "").toLowerCase().includes(q) || (a.position || "").toLowerCase().includes(q) || (a.city || "").toLowerCase().includes(q);
+          });
         return (
           <div style={{ padding: "36px 40px" }}>
             <div style={{ marginBottom: 28 }}>
@@ -1234,12 +1248,17 @@ export default function AdminDashboard() {
               <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>status overview — click a row to view details</p>
             </div>
             <Stats cols={4} items={[["total", apps.length], ["pending review", counts.new], ["in progress", inPipeline], ["rejected", counts.rejected]]} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <DivFilter allApps={apps} active={overviewDiv} onChange={setOverviewDiv} />
+              <input value={ovSearch} onChange={e => setOvSearch(e.target.value)} placeholder="search name, position, city..."
+                style={{ border: "none", borderBottom: "1px solid #e8e8e8", padding: "6px 0", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#1a1a1a", background: "transparent", outline: "none", width: 220 }} />
+            </div>
             <Tbl>
               <THead cols="1fr 1fr 1fr 110px">
                 <TH>name</TH><TH>position</TH><TH>availability</TH><TH>status</TH>
               </THead>
-              {loading ? <Empty msg="loading..." /> : apps.length === 0 ? <Empty msg="no applications yet" /> :
-                apps.map(a => (
+              {loading ? <Empty msg="loading..." /> : filteredOverview.length === 0 ? <Empty msg="no applications yet" /> :
+                filteredOverview.map(a => (
                   <TRow key={a.id} cols="1fr 1fr 1fr 110px" onClick={() => setPanelApp(a)}>
                     <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
@@ -1352,7 +1371,7 @@ export default function AdminDashboard() {
           onConfirm={(dt, mode) => {
             const body = buildInterviewEmail(interviewApp, mode, dt);
             window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(interviewApp.email)}&su=${encodeURIComponent(interviewApp.full_name.split(" ")[0])}%2C%20we%27d%20like%20to%20meet%20you.&body=${encodeURIComponent(body)}`, "_blank");
-            updateStatus(interviewApp.id, "interview", { interview_date: dt });
+            updateStatus(interviewApp.id, "interview", { interview_date: dt, interview_mode: mode });
             setInterviewApp(null);
             showToast("interview scheduled ✓");
           }}
