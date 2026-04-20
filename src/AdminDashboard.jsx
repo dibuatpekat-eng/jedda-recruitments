@@ -1159,9 +1159,11 @@ export default function AdminDashboard() {
       <div style={{ height: "100vh", display: "flex", fontFamily: sans, background: "#111" }}>
         {/* Left */}
         <div style={{ width: "46%", borderRight: "1px solid #222", display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 48px" }}>
-          {/* FIX: logo stretch — pakai maxWidth agar proporsional */}
-          <img src="/logoo.png" alt="Jedda" style={{ height: 20, width: "auto", maxWidth: 160, display: "block", filter: "invert(1)", objectFit: "contain" }} />
-          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#444", marginTop: 8 }}>recruitment dashboard</p>
+          {/* FIX: logo proporsional + jarak ke teks */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <img src="/logoo.png" alt="Jedda" style={{ height: 20, width: "auto", maxWidth: 160, display: "block", filter: "invert(1)", objectFit: "contain", objectPosition: "left center" }} />
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#444" }}>recruitment dashboard</p>
+          </div>
         </div>
         {/* Right */}
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1349,7 +1351,7 @@ export default function AdminDashboard() {
           onClose={() => setInterviewApp(null)}
           onConfirm={(dt, mode) => {
             const body = buildInterviewEmail(interviewApp, mode, dt);
-            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(interviewApp.email)}&su=Congratulations%2C%20${encodeURIComponent(interviewApp.full_name.split(" ")[0])}%20%E2%80%94%20you%27re%20in%20the%20next%20round&body=${encodeURIComponent(body)}`, "_blank");
+            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(interviewApp.email)}&su=${encodeURIComponent(interviewApp.full_name.split(" ")[0])}%2C%20we%27d%20like%20to%20meet%20you.&body=${encodeURIComponent(body)}`, "_blank");
             updateStatus(interviewApp.id, "interview", { interview_date: dt });
             setInterviewApp(null);
             showToast("interview scheduled ✓");
