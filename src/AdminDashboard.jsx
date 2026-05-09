@@ -791,6 +791,84 @@ function AcceptanceModal({ app, onClose, onConfirm }) {
   );
 }
 
+// ─── Offer Modal ────────────────────────────────────────────
+function OfferModal({ app, onClose, onConfirm }) {
+  const [workType, setWorkType] = useState("Part-Time");
+  const [salary, setSalary] = useState("");
+  const [salaryProbation, setSalaryProbation] = useState("");
+  const [startDate, setStartDate] = useState("");
+  if (!app) return null;
+
+  const isFull = workType === "Full-Time";
+  const link = `https://careers.jeddawear.com/offer?id=${app.id}`;
+
+  const canSend = salary && startDate && (isFull ? salaryProbation : true);
+
+  const buildEmail = () => {
+    const firstName = app.full_name.split(" ")[0];
+    const typeNote = `We're extending this offer as ${workType === "Full-Time" ? "a full-time position" : "a part-time position"} — though if you'd like to discuss the other arrangement, we're open to that conversation.`;
+    return `Hi ${firstName},\n\nCongratulations — we'd love to have you on the Jedda team.\n\n${typeNote}\n\nPlease review the full offer details via the link below. Everything is outlined there, and you can sign digitally to confirm your acceptance:\n\n${link}\n\nThe offer will remain open for 7 days. Feel free to reach out if you have any questions.\n\nJedda.`;
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.12)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 480, border: "1px solid #f0f0f0", fontFamily: sans, maxHeight: "90vh", overflowY: "auto" }}>
+        <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>send job offer</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 28 }}>{app.full_name} — {app.position?.toLowerCase()}</p>
+
+        {/* Work type toggle */}
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>employment type</p>
+        <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
+          {["Part-Time", "Full-Time"].map((t, i) => (
+            <button key={t} onClick={() => setWorkType(t)}
+              style={{ flex: 1, padding: "9px 0", border: "none", borderRight: i === 0 ? "1px solid #f0f0f0" : "none", background: workType === t ? "#1a1a1a" : "#fff", color: workType === t ? "#fff" : "#bbb", fontFamily: sans, fontSize: 11, fontWeight: 300, cursor: "pointer", transition: "all 0.15s", letterSpacing: 0.5 }}>
+              {t.toLowerCase()}
+            </button>
+          ))}
+        </div>
+
+        {/* Start date */}
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>start date</p>
+        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+          style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 22 }} />
+
+        {/* Salary */}
+        {isFull ? (
+          <>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary during probation (IDR)</p>
+            <input type="text" placeholder="e.g. 3,500,000" value={salaryProbation} onChange={e => setSalaryProbation(e.target.value)}
+              style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 22 }} />
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary after probation (IDR)</p>
+            <input type="text" placeholder="e.g. 4,500,000" value={salary} onChange={e => setSalary(e.target.value)}
+              style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 28 }} />
+          </>
+        ) : (
+          <>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary (IDR)</p>
+            <input type="text" placeholder="e.g. 2,500,000" value={salary} onChange={e => setSalary(e.target.value)}
+              style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 28 }} />
+          </>
+        )}
+
+        {/* Email preview */}
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
+        <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
+          {buildEmail()}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
+          <button
+            onClick={() => { if (!canSend) return; onConfirm({ workType, salary, salaryProbation, startDate }); }}
+            style={{ background: "none", border: "none", borderBottom: `1px solid ${canSend ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: canSend ? "#1a1a1a" : "#bbb", cursor: canSend ? "pointer" : "default" }}>
+            send offer →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page components ────────────────────────────────────────
 function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
   const [div, setDiv] = useState("all");
@@ -1006,7 +1084,7 @@ function InterviewPage({ apps, updateStatus, showToast }) {
   );
 }
 
-function FinalTeamPage({ apps, setPanelApp, setAcceptanceApp }) {
+function FinalTeamPage({ apps, setPanelApp, setAcceptanceApp, setOfferApp }) {
   const [div, setDiv] = useState("all");
   const all = apps.filter(a => a.status === "the final team");
   const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
@@ -1014,27 +1092,34 @@ function FinalTeamPage({ apps, setPanelApp, setAcceptanceApp }) {
     <div style={{ padding: "36px 40px" }}>
       <div style={{ marginBottom: 28 }}>
         <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>the final team</p>
-        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>they made it — send acceptance email</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>they made it — send job offer, then acceptance email</p>
       </div>
       <DivFilter allApps={all} active={div} onChange={setDiv} />
       <Tbl>
-        <THead cols="1fr 1fr 80px 180px">
+        <THead cols="1fr 1fr 80px 260px">
           <TH>name</TH><TH>position</TH><TH>type</TH><TH>action</TH>
         </THead>
         {filtered.length === 0 ? <Empty msg="no new team members yet" /> :
           filtered.map(a => (
-            <TRow key={a.id} cols="1fr 1fr 80px 180px" onClick={() => setPanelApp(a)}>
+            <TRow key={a.id} cols="1fr 1fr 80px 260px" onClick={() => setPanelApp(a)}>
               <TName name={a.full_name} sub={a.city} />
               <TPos>{a.position?.toLowerCase()}</TPos>
               <Badge wt={a.work_type} />
               <div onClick={e => e.stopPropagation()}>
-                {a.acceptance_sent
-                  ? <SentLabel text="acceptance sent ✓" />
-                  : <button onClick={() => setAcceptanceApp(a)}
-                      style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
-                      send acceptance email →
-                    </button>
-                }
+                <ActionRow actions={[
+                  ...(a.offer_accepted_at
+                    ? [{ label: "offer accepted ✓", cls: "base" }]
+                    : a.offer_sent
+                      ? [{ label: "offer sent ✓", cls: "base" }, { label: "resend offer", onClick: () => setOfferApp(a) }]
+                      : [{ label: "send offer →", cls: "primary", onClick: () => setOfferApp(a) }]
+                  ),
+                  ...(a.offer_accepted_at && !a.acceptance_sent
+                    ? [{ label: "send acceptance email →", cls: "primary", onClick: () => setAcceptanceApp(a) }]
+                    : a.acceptance_sent
+                      ? [{ label: "acceptance sent ✓", cls: "base" }]
+                      : []
+                  ),
+                ]} />
               </div>
             </TRow>
           ))
@@ -1122,6 +1207,7 @@ export default function AdminDashboard() {
   const [panelApp, setPanelApp] = useState(null);
   const [interviewApp, setInterviewApp] = useState(null);
   const [acceptanceApp, setAcceptanceApp] = useState(null);
+  const [offerApp, setOfferApp] = useState(null);
   const [evaluatingApp, setEvaluatingApp] = useState(null);
   const [newPosFilter, setNewPosFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -1333,7 +1419,7 @@ export default function AdminDashboard() {
       case "evaluating":   return <EvaluatingPage apps={apps} setEvaluatingApp={setEvaluatingApp} showToast={showToast} />;
       case "finalist":     return <FinalistPage apps={apps} setInterviewApp={setInterviewApp} setPanelApp={setPanelApp} />;
       case "interview":    return <InterviewPage apps={apps} updateStatus={updateStatus} showToast={showToast} />;
-      case "thefinalteam": return <FinalTeamPage apps={apps} setPanelApp={setPanelApp} setAcceptanceApp={setAcceptanceApp} />;
+      case "thefinalteam": return <FinalTeamPage apps={apps} setPanelApp={setPanelApp} setAcceptanceApp={setAcceptanceApp} setOfferApp={setOfferApp} />;
       case "rejected":     return <RejectedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
       default: return null;
     }
@@ -1387,6 +1473,28 @@ export default function AdminDashboard() {
             updateStatus(interviewApp.id, "interview", { interview_date: dt, interview_mode: mode });
             setInterviewApp(null);
             showToast("interview scheduled ✓");
+          }}
+        />
+      )}
+
+      {offerApp && (
+        <OfferModal
+          app={offerApp}
+          onClose={() => setOfferApp(null)}
+          onConfirm={({ workType, salary, salaryProbation, startDate }) => {
+            const firstName = offerApp.full_name.split(" ")[0];
+            const link = `https://careers.jeddawear.com/offer?id=${offerApp.id}`;
+            const body = `Hi ${firstName},\n\nFollowing our conversation, we'd like to formally extend an offer for you to join Jedda.\n\nPlease review the offer details via the link below and sign digitally to confirm your acceptance:\n\n${link}\n\nThe offer will remain open for 7 days. Feel free to reach out if you have any questions.\n\nJedda.`;
+            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(offerApp.email)}&su=${encodeURIComponent("An Offer from Jedda")}&body=${encodeURIComponent(body)}`, "_blank");
+            updateStatus(offerApp.id, "the final team", {
+              offer_sent: true,
+              offer_work_type: workType,
+              offer_salary: salary,
+              offer_salary_probation: salaryProbation,
+              offer_start_date: startDate,
+            });
+            setOfferApp(null);
+            showToast("offer sent ✓");
           }}
         />
       )}
