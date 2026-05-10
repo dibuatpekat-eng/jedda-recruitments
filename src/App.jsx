@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase.js";
 
+// ── RECRUITMENT CLOSED FLAG ──────────────────────────────────
+// Set to true when no longer accepting applications
+const RECRUITMENT_OPEN = false;
+
 const DIVISIONS = [
   {
     label: "design",
@@ -75,6 +79,30 @@ const Lnk = ({ text, onClick, bold }) => (
   <button className="m-link" onClick={onClick} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", cursor: "pointer", letterSpacing: 1.5, transition: "opacity 0.2s", padding: 0, borderBottom: `1px solid ${bold ? "#1a1a1a" : "#ccc"}`, paddingBottom: 3 }}>{text}</button>
 );
 
+// ── Recruitment Closed Modal ─────────────────────────────────
+function RecruitmentClosedModal({ onClose, onApplyAnyway }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", maxWidth: 380, width: "100%", padding: "44px 36px", textAlign: "center" }}>
+        <Logo img />
+        <div style={{ height: 28 }} />
+        <div style={{ width: 24, height: 1, background: "#ddd", margin: "0 auto 24px" }} />
+        <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 12, lineHeight: 1.6 }}>positions have been filled.</p>
+        <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 1.9, marginBottom: 36 }}>
+          we're not actively recruiting right now — all open roles have been filled for this cycle.
+        </p>
+        <div style={{ width: "100%", height: 1, background: "#f0f0f0", marginBottom: 28 }} />
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb", lineHeight: 1.8, marginBottom: 20 }}>
+          still interested in being part of jedda? you can still send us an application — we keep strong profiles on file.
+        </p>
+        <Lnk text="apply anyway →" onClick={onApplyAnyway} bold />
+        <div style={{ height: 16 }} />
+        <button onClick={onClose} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 200, color: "#ccc", cursor: "pointer", letterSpacing: 1 }}>maybe later</button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [phase, setPhase] = useState("welcome");
   const [role, setRole] = useState(null);
@@ -85,6 +113,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState("");
+  const [showClosedModal, setShowClosedModal] = useState(false);
   const [d, setD] = useState({ otherRole: "", fdSpecs: [], fdSpecOther: "", workType: "", fullName: "", phone: "", email: "", city: "", bandung: null, whyJedda: "", avail: "", availOther: "", cv: null, portfolio: null, portfolioLink: "", onsite: null });
   const [cvName, setCvName] = useState("");
   const [portName, setPortName] = useState("");
@@ -113,6 +142,7 @@ export default function App() {
       .m-row:hover .m-rt{opacity:0.5 !important}
       .m-chk:hover{border-color:#999 !important}
       html{scroll-behavior:smooth}
+      textarea{resize:none}
     `;
     document.head.appendChild(st);
     setTimeout(() => setReady(true), 50);
@@ -167,6 +197,10 @@ export default function App() {
     if (k === "avail" && !d.avail) e.avail = "please select one";
     if (k === "avail" && d.avail === "other" && !d.availOther.trim()) e.availOther = "please specify";
     if (k === "upload" && !d.cv) e.cv = "please upload your cv";
+    if (k === "upload" && d.portfolioLink.trim()) {
+      const link = d.portfolioLink.trim();
+      if (!link.startsWith("http://") && !link.startsWith("https://")) e.portfolioLink = "please include https:// at the start";
+    }
     setErr(e); return !Object.keys(e).length;
   };
 
@@ -236,6 +270,14 @@ export default function App() {
   const goTo = (p, r) => { if (r) setRole(r); setPhase(p); window.scrollTo(0, 0); };
   const startApply = () => { setD({ otherRole: "", fdSpecs: [], fdSpecOther: "", workType: "", fullName: "", phone: "", email: "", city: "", bandung: null, whyJedda: "", avail: "", availOther: "", cv: null, portfolio: null, portfolioLink: "", onsite: null }); setCvName(""); setPortName(""); setStep(0); setSubmitErr(""); goTo("form"); };
 
+  const handleViewRoles = () => {
+    if (!RECRUITMENT_OPEN) {
+      setShowClosedModal(true);
+    } else {
+      goTo("listing");
+    }
+  };
+
   const slide = { opacity: vis ? 1 : 0, transform: vis ? "translateY(0)" : `translateY(${dir * 10}px)`, transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)" };
 
 // ═══ DONE ═══
@@ -279,16 +321,27 @@ if (done) return (
 
   // ═══ WELCOME ═══
   if (phase === "welcome") return (
-    <Sh><div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ textAlign: "center", maxWidth: 360, opacity: ready ? 1 : 0, transform: ready ? "translateY(0)" : "translateY(12px)", transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }}>
-        <Logo hero img /><div style={{ height: 36 }} />
-        <p style={{ fontSize: 10, fontWeight: 400, letterSpacing: 5, textTransform: "uppercase" }}>open recruitment</p>
-        <div style={{ height: 20 }} /><div style={{ width: 32, height: 1, background: "#ccc", margin: "0 auto" }} /><div style={{ height: 24 }} />
-        <p style={{ fontSize: 12, fontWeight: 200, lineHeight: 2, color: "#999" }}>seeking individuals who value<br />thoughtful work and quiet precision.</p>
-        <div style={{ height: 44 }} />
-        <Lnk text="view open roles →" onClick={() => goTo("listing")} bold />
+    <Sh>
+      {showClosedModal && (
+        <RecruitmentClosedModal
+          onClose={() => setShowClosedModal(false)}
+          onApplyAnyway={() => {
+            setShowClosedModal(false);
+            goTo("listing");
+          }}
+        />
+      )}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div style={{ textAlign: "center", maxWidth: 360, opacity: ready ? 1 : 0, transform: ready ? "translateY(0)" : "translateY(12px)", transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }}>
+          <Logo hero img /><div style={{ height: 36 }} />
+          <p style={{ fontSize: 10, fontWeight: 400, letterSpacing: 5, textTransform: "uppercase" }}>open recruitment</p>
+          <div style={{ height: 20 }} /><div style={{ width: 32, height: 1, background: "#ccc", margin: "0 auto" }} /><div style={{ height: 24 }} />
+          <p style={{ fontSize: 12, fontWeight: 200, lineHeight: 2, color: "#999" }}>seeking individuals who value<br />thoughtful work and quiet precision.</p>
+          <div style={{ height: 44 }} />
+          <Lnk text="view open roles →" onClick={handleViewRoles} bold />
+        </div>
       </div>
-    </div></Sh>
+    </Sh>
   );
 
   // ═══ LISTING ═══
@@ -412,13 +465,14 @@ if (done) return (
               <span style={{ fontSize: 10, fontWeight: 200, color: "#ccc", letterSpacing: 1 }}>or</span>
               <div style={{ flex: 1, height: 1, background: "#f0f0f0" }} />
             </div>
-            <input style={{ ...il, fontSize: 13 }} placeholder="paste a link - behance, dribbble, issuu, notion, etc." type="url" value={d.portfolioLink} onChange={e => { setD({ ...d, portfolioLink: e.target.value }); setErr({}); }} onKeyDown={onKey} />
+            <input style={{ ...il, fontSize: 13 }} placeholder="paste a link — behance, dribbble, issuu, notion, etc." type="url" value={d.portfolioLink} onChange={e => { setD({ ...d, portfolioLink: e.target.value }); setErr({}); }} onKeyDown={onKey} />
+            {err.portfolioLink && <p style={es}>{err.portfolioLink}</p>}
             <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", marginTop: 7 }}>make sure the link is publicly accessible</p>
           </div>);
 
         case "whyJedda":
           return (<div><Nm n={sIdx("whyJedda")} t={totalForm-1} /><Q>why do you want to be part of jedda?</Q><div style={{ height: 20 }} />
-            <input ref={el=>inputRefs.current.whyJedda=el} style={il} placeholder="I believe in what Jedda stands for and I want to grow with it." value={d.whyJedda} onChange={e=>{setD({...d,whyJedda:e.target.value});setErr({});}} onKeyDown={onKey} />
+            <textarea ref={el=>inputRefs.current.whyJedda=el} style={{ ...il, height: 100, paddingTop: 8 }} placeholder="I believe in what Jedda stands for and I want to grow with it." value={d.whyJedda} onChange={e=>{setD({...d,whyJedda:e.target.value});setErr({});}} />
             {err.whyJedda && <p style={es}>{err.whyJedda}</p>}</div>);
 
         case "review":

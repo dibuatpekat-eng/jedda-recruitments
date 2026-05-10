@@ -641,7 +641,7 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
             <div style={{ width: "100%", height: 1, background: "#f5f5f5", margin: "28px 0" }} />
             <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>refer out</p>
             <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb", lineHeight: 1.7, marginBottom: 14 }}>not the right fit for jedda right now — but worth passing on to another company.</p>
-            <button onClick={() => { onReferOut(app.id); onClose(); }}
+            <button onClick={() => { if (window.confirm(`Refer out ${app.full_name}? This will move them to referred out.`)) { onReferOut(app.id); onClose(); } }}
               style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#7a6aaa", cursor: "pointer", padding: 0, borderBottom: "1px solid #c8c0e8", paddingBottom: 2 }}
               onMouseOver={e => e.currentTarget.style.opacity = "0.5"}
               onMouseOut={e => e.currentTarget.style.opacity = "1"}
@@ -779,6 +779,118 @@ function formatIDR(raw) {
   return parseInt(num, 10).toLocaleString("id-ID");
 }
 
+
+// ─── Resend Interview Modal ─────────────────────────────────
+function ResendInterviewModal({ app, onClose, onSend }) {
+  const detectedDiv = app ? getDivision(app.position) : "retail";
+  const defaultDiv = ["design", "creative", "retail"].includes(detectedDiv) ? detectedDiv : "retail";
+  const [division, setDivision] = useState(defaultDiv);
+  const [dt, setDt] = useState(app?.interview_date ? app.interview_date.slice(0, 16) : "");
+  if (!app) return null;
+  const preview = dt ? buildInterviewEmail(app, division, dt) : "select a date & time first.";
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.12)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 480, border: "1px solid #f0f0f0", fontFamily: sans, maxHeight: "90vh", overflowY: "auto" }}>
+        <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>resend interview email</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 24 }}>{app.full_name} — {app.position?.toLowerCase()}</p>
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>division</p>
+        <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
+          {["design", "creative", "retail"].map((d, i) => (
+            <button key={d} onClick={() => setDivision(d)}
+              style={{ flex: 1, padding: "9px 0", border: "none", borderRight: i < 2 ? "1px solid #f0f0f0" : "none", background: division === d ? "#1a1a1a" : "#fff", color: division === d ? "#fff" : "#bbb", fontFamily: sans, fontSize: 11, fontWeight: 300, cursor: "pointer", transition: "all 0.15s", letterSpacing: 0.5 }}>
+              {d}
+            </button>
+          ))}
+        </div>
+        {division === "retail" && (
+          <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "12px 14px", marginBottom: 22 }}>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 4 }}>location</p>
+            <p style={{ fontSize: 11, fontWeight: 300, color: "#555" }}>Fragment Project, Jl. Ir. H. Juanda No.23, Bandung</p>
+          </div>
+        )}
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>date & time</p>
+        <input type="datetime-local" value={dt} onChange={e => setDt(e.target.value)}
+          style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 24 }} />
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
+        <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{preview}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
+          <button onClick={() => { if (dt) onSend(division, dt); }}
+            style={{ background: "none", border: "none", borderBottom: `1px solid ${dt ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: dt ? "#1a1a1a" : "#bbb", cursor: dt ? "pointer" : "default" }}>
+            open email →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Resend Offer Modal ─────────────────────────────────────
+function ResendOfferModal({ app, onClose, onSend }) {
+  const [sendMode, setSendMode] = useState(app?.offer_work_type?.toLowerCase().includes("/") ? "both" : app?.offer_work_type?.toLowerCase().includes("full") ? "ft" : "pt");
+  const [ptSalary, setPtSalary] = useState(app?.offer_salary_pt || "");
+  const [ftSalary, setFtSalary] = useState(app?.offer_salary || "");
+  const [ftSalaryProbation, setFtSalaryProbation] = useState(app?.offer_salary_probation || "");
+  const [startDate, setStartDate] = useState("");
+  if (!app) return null;
+  const link = `https://careers.jeddawear.com/offer?id=${app.id}`;
+  const firstName = app.full_name.split(" ")[0];
+  const showPT = sendMode === "pt" || sendMode === "both";
+  const showFT = sendMode === "ft" || sendMode === "both";
+  const canSend = startDate && (!showPT || ptSalary) && (!showFT || (ftSalary && ftSalaryProbation));
+  const buildEmail = () => {
+    let typeNote = "";
+    if (sendMode === "both") typeNote = "We'd like to offer you a position at Jedda, and we're open to either a full-time or part-time arrangement — whichever works best for you. The offer details for both options are outlined in the link below.";
+    else if (sendMode === "ft") typeNote = "We're extending this offer as a full-time position — though if you'd like to discuss a part-time arrangement instead, we're open to that conversation.";
+    else typeNote = "We're extending this offer as a part-time position — though if you'd like to discuss a full-time arrangement instead, we're open to that conversation.";
+    return `Hi ${firstName},\n\nCongratulations — we'd love to have you on the Jedda team.\n\n${typeNote}\n\nPlease review the full offer details via the link below. Everything is outlined there, and you can sign digitally to confirm your acceptance:\n\n${link}\n\nThe offer will remain open for 7 days. Feel free to reach out if you have any questions.\n\nJedda.`;
+  };
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.12)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 500, border: "1px solid #f0f0f0", fontFamily: sans, maxHeight: "90vh", overflowY: "auto" }}>
+        <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>resend job offer</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 28 }}>{app.full_name} — {app.position?.toLowerCase()}</p>
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>offer type</p>
+        <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
+          {[["pt","part-time only"],["ft","full-time only"],["both","both options"]].map(([val, lbl], i) => (
+            <button key={val} onClick={() => setSendMode(val)}
+              style={{ flex: 1, padding: "9px 0", border: "none", borderRight: i < 2 ? "1px solid #f0f0f0" : "none", background: sendMode === val ? "#1a1a1a" : "#fff", color: sendMode === val ? "#fff" : "#bbb", fontFamily: sans, fontSize: 10, fontWeight: 300, cursor: "pointer", transition: "all 0.15s", letterSpacing: 0.3 }}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>start date</p>
+        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+          style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 24 }} />
+        {showPT && (<>
+          {sendMode === "both" && <p style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, textTransform: "uppercase", color: "#1a1a1a", marginBottom: 12 }}>part-time</p>}
+          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary (IDR / month)</p>
+          <input type="text" placeholder="e.g. 2,500,000" value={ptSalary} onChange={e => setPtSalary(formatIDR(e.target.value))}
+            style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 24 }} />
+        </>)}
+        {showFT && (<>
+          {sendMode === "both" && <p style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, textTransform: "uppercase", color: "#1a1a1a", marginBottom: 12 }}>full-time</p>}
+          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary during probation (IDR / month)</p>
+          <input type="text" placeholder="e.g. 3,500,000" value={ftSalaryProbation} onChange={e => setFtSalaryProbation(formatIDR(e.target.value))}
+            style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 16 }} />
+          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary after probation (IDR / month)</p>
+          <input type="text" placeholder="e.g. 4,500,000" value={ftSalary} onChange={e => setFtSalary(formatIDR(e.target.value))}
+            style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 28 }} />
+        </>)}
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
+        <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{buildEmail()}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
+          <button onClick={() => { if (!canSend) return; onSend(buildEmail(), sendMode === "pt" ? "Part-time" : sendMode === "ft" ? "Full-time" : "Full-time / Part-time", ptSalary, ftSalary, ftSalaryProbation, startDate); }}
+            style={{ background: "none", border: "none", borderBottom: `1px solid ${canSend ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: canSend ? "#1a1a1a" : "#bbb", cursor: canSend ? "pointer" : "default" }}>
+            resend offer →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OfferModal({ app, onClose, onConfirm }) {
   const [sendMode, setSendMode] = useState("both"); // "pt" | "ft" | "both"
   const [ptSalary, setPtSalary] = useState("");
@@ -912,7 +1024,7 @@ function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
                   <ArDivider />
                   <ArBtn label="shortlisted" cls="primary" onClick={() => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); }} />
                   <ArDivider />
-                  <ArBtn label="reject" cls="danger" onClick={() => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); }} />
+                  <ArBtn label="reject" cls="danger" onClick={() => { if (window.confirm(`Reject ${a.full_name}? This will move them to rejected.`)) { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } }} />
                 </div>
               </div>
             </TRow>
@@ -1070,10 +1182,7 @@ function InterviewPage({ apps, updateStatus, showToast }) {
             const d = a.interview_date ? new Date(a.interview_date) : null;
             const dateLabel = d ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—";
             const resendEmail = () => {
-              const division = a.interview_mode || getDivision(a.position) || "retail";
-              const body = buildInterviewEmail(a, division, a.interview_date);
-              window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=${encodeURIComponent(a.full_name.split(" ")[0])}%2C%20we%27d%20like%20to%20meet%20you.&body=${encodeURIComponent(body)}`, "_blank");
-              showToast("email reopened ✓");
+              setResendInterviewApp(a);
             };
             return (
               <TRow key={a.id} cols="1fr 1fr 80px 140px 1fr">
@@ -1123,7 +1232,7 @@ function FinalTeamPage({ apps, setPanelApp, setAcceptanceApp, setOfferApp }) {
                   ...(a.offer_accepted_at
                     ? [{ label: "offer accepted ✓", cls: "base" }]
                     : a.offer_sent
-                      ? [{ label: "offer sent ✓", cls: "base" }, { label: "resend offer", onClick: () => setOfferApp(a) }]
+                      ? [{ label: "offer sent ✓", cls: "base" }, { label: "resend offer", onClick: () => setResendOfferApp(a) }]
                       : [{ label: "send offer →", cls: "primary", onClick: () => setOfferApp(a) }]
                   ),
                   ...(a.offer_accepted_at && !a.acceptance_sent
@@ -1221,6 +1330,8 @@ export default function AdminDashboard() {
   const [interviewApp, setInterviewApp] = useState(null);
   const [acceptanceApp, setAcceptanceApp] = useState(null);
   const [offerApp, setOfferApp] = useState(null);
+  const [resendInterviewApp, setResendInterviewApp] = useState(null);
+  const [resendOfferApp, setResendOfferApp] = useState(null);
   const [evaluatingApp, setEvaluatingApp] = useState(null);
   const [newPosFilter, setNewPosFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -1416,7 +1527,7 @@ export default function AdminDashboard() {
                         { label: "on hold", onClick: () => { updateStatus(a.id, "on hold"); showToast("→ on hold"); } },
                         { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
                         { label: "priority", onClick: () => { updateStatus(a.id, "finalist", { is_priority: true }); showToast("→ finalist (priority)"); } },
-                        { label: "reject", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
+                        { label: "reject", cls: "danger", onClick: () => { if (window.confirm(`Reject ${a.full_name}? This will move them to rejected.`)) { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } } },
                       ]} />
                     </div>
                   </TRow>
@@ -1483,7 +1594,11 @@ export default function AdminDashboard() {
           onClose={() => setInterviewApp(null)}
           onConfirm={(dt, mode) => {
             const body = buildInterviewEmail(interviewApp, mode, dt);
-            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(interviewApp.email)}&su=${encodeURIComponent(interviewApp.full_name.split(" ")[0])}%2C%20we%27d%20like%20to%20meet%20you.&body=${encodeURIComponent(body)}`, "_blank");
+            const interviewDivision = division || getDivision(interviewApp.position) || "retail";
+            const interviewSubject = interviewDivision === "retail"
+              ? `${interviewApp.full_name.split(" ")[0]}, we'd like to meet you.`
+              : `we'd like to talk — jedda`;
+            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(interviewApp.email)}&su=${encodeURIComponent(interviewSubject)}&body=${encodeURIComponent(body)}`, "_blank");
             updateStatus(interviewApp.id, "interview", { interview_date: dt, interview_mode: mode });
             setInterviewApp(null);
             showToast("interview scheduled ✓");
@@ -1491,12 +1606,48 @@ export default function AdminDashboard() {
         />
       )}
 
+      {resendInterviewApp && (
+        <ResendInterviewModal
+          app={resendInterviewApp}
+          onClose={() => setResendInterviewApp(null)}
+          onSend={(division, dt) => {
+            const body = buildInterviewEmail(resendInterviewApp, division, dt);
+            const subject = division === "retail"
+              ? `${resendInterviewApp.full_name.split(" ")[0]}, we'd like to meet you.`
+              : `we'd like to talk — jedda`;
+            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(resendInterviewApp.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank");
+            updateStatus(resendInterviewApp.id, "interview", { interview_mode: division, interview_date: dt });
+            setResendInterviewApp(null);
+            showToast("email reopened ✓");
+          }}
+        />
+      )}
+      {resendOfferApp && (
+        <ResendOfferModal
+          app={resendOfferApp}
+          onClose={() => setResendOfferApp(null)}
+          onSend={(emailBody, workType, ptSalary, ftSalary, ftSalaryProbation, startDate) => {
+            const formattedDate = startDate ? new Date(startDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "";
+            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(resendOfferApp.email)}&su=${encodeURIComponent("Congratulations — Jedda")}&body=${encodeURIComponent(emailBody)}`, "_blank");
+            updateStatus(resendOfferApp.id, "the final team", {
+              offer_sent: true,
+              offer_work_type: workType,
+              offer_salary_pt: ptSalary || "",
+              offer_salary: ftSalary || "",
+              offer_salary_probation: ftSalaryProbation || "",
+              offer_start_date: formattedDate,
+            });
+            setResendOfferApp(null);
+            showToast("offer resent ✓");
+          }}
+        />
+      )}
       {offerApp && (
         <OfferModal
           app={offerApp}
           onClose={() => setOfferApp(null)}
           onConfirm={({ sendMode, ptSalary, ftSalary, ftSalaryProbation, startDate, emailBody }) => {
-            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(offerApp.email)}&su=${encodeURIComponent("An Offer from Jedda")}&body=${encodeURIComponent(emailBody)}`, "_blank");
+            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(offerApp.email)}&su=${encodeURIComponent("Congratulations — Jedda")}&body=${encodeURIComponent(emailBody)}`, "_blank");
             const workType = sendMode === "pt" ? "Part-Time" : sendMode === "ft" ? "Full-Time" : "Part-Time / Full-Time";
             const d = new Date(startDate);
             const formattedDate = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });

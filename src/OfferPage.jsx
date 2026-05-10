@@ -88,10 +88,14 @@ canvas{display:block;width:100%;height:100px;background:#fafafa;border:1px solid
 .btn-print{background:none;border:none;border-bottom:1px solid #ddd;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:300;color:#bbb;cursor:pointer;padding-bottom:2px;letter-spacing:1px}
 .cta-row{display:flex;align-items:center;gap:24px;border-top:1px solid #f0f0f0;padding-top:28px;flex-wrap:wrap}
 @media print{
-  .topbar,.cta-row,.no-print,.btn-print{display:none!important}
+  @page{size:A4 portrait;margin:20mm 18mm 20mm 18mm}
+  .topbar,.cta-row,.no-print,.btn-print,.conn-box,.zones{display:none!important}
   .print-show{display:block!important}
-  .doc{padding:0;max-width:100%}
-  body,html{background:#fff}
+  .doc{padding:0;max-width:100%;margin:0}
+  body,html{background:#fff;font-size:11px}
+  .detail-row{break-inside:avoid}
+  h1,h2,p{orphans:3;widows:3}
+  .section{break-inside:avoid;margin-bottom:24px}
 }
 `;
 
@@ -149,42 +153,49 @@ function ZoneCard({ zone, open, onToggle }) {
 function ConnDiagram({ conn }) {
   const ins = conn.filter(c => c.dir === "in");
   const outs = conn.filter(c => c.dir === "out");
+  const NODE_H = 52; // height per node slot (node box ~32px + label ~12px + gap 8px)
+  const youH = Math.max(ins.length, outs.length) * NODE_H;
   return (
     <div className="conn-box">
       <p style={{ fontSize: 7, fontWeight: 300, letterSpacing: 3, color: "#ccc", marginBottom: 18, textTransform: "uppercase" }}>who you work with</p>
-      <div style={{ display: "flex", alignItems: "flex-start" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 110 }}>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        {/* Left nodes */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 120 }}>
           {ins.map((c, i) => (
-            <div key={i}>
+            <div key={i} style={{ height: NODE_H, display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <div className="conn-node">{c.node}</div>
-              <p style={{ fontSize: 8, fontWeight: 200, color: "#bbb", marginTop: 4 }}>{c.label}</p>
+              <p style={{ fontSize: 8, fontWeight: 200, color: "#bbb", marginTop: 3 }}>{c.label}</p>
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: `${ins.length > 1 ? 16 : 6}px 8px` }}>
+        {/* Left arrows */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {ins.map((_, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", height: ins.length > 1 ? 44 : "auto" }}>
-              <div className="conn-line" />
+            <div key={i} style={{ height: NODE_H, display: "flex", alignItems: "center" }}>
+              <div className="conn-line" style={{ minWidth: 20 }} />
               <span className="conn-arrow">→</span>
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", alignItems: "center", padding: "6px 0" }}>
+        {/* You node */}
+        <div style={{ display: "flex", alignItems: "center", height: youH }}>
           <div className="conn-node you">you</div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: `${outs.length > 1 ? 16 : 6}px 8px` }}>
+        {/* Right arrows */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {outs.map((_, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", height: outs.length > 1 ? 44 : "auto" }}>
+            <div key={i} style={{ height: NODE_H, display: "flex", alignItems: "center" }}>
               <span className="conn-arrow">→</span>
-              <div className="conn-line" />
+              <div className="conn-line" style={{ minWidth: 20 }} />
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 110 }}>
+        {/* Right nodes */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 120 }}>
           {outs.map((c, i) => (
-            <div key={i}>
+            <div key={i} style={{ height: NODE_H, display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <div className="conn-node">{c.node}</div>
-              <p style={{ fontSize: 8, fontWeight: 200, color: "#bbb", marginTop: 4 }}>{c.label}</p>
+              <p style={{ fontSize: 8, fontWeight: 200, color: "#bbb", marginTop: 3 }}>{c.label}</p>
             </div>
           ))}
         </div>
@@ -313,14 +324,35 @@ export default function OfferPage() {
   if (phase === "accepted") return (
     <div style={{ fontFamily: sans }}>
       <div className="no-print" style={{ minHeight: "100vh", background: "#f5f5f3", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <div style={{ textAlign: "center", maxWidth: 360 }}>
+        <div style={{ textAlign: "center", maxWidth: 380 }}>
           <p style={{ fontSize: 10, letterSpacing: 5, color: "#bbb", marginBottom: 28, fontWeight: 400 }}>JEDDA</p>
           <div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto 32px" }} />
           <p style={{ fontSize: 18, fontWeight: 300, marginBottom: 12 }}>You're in.</p>
-          <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 2, maxWidth: 300, margin: "0 auto 40px" }}>
-            Thanks for signing. We've received your acceptance and will reach out soon with everything you need for your first day.
+          <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 2, maxWidth: 320, margin: "0 auto 36px" }}>
+            Your signature has been recorded. To finalize your placement, please complete the step below.
           </p>
-          <button onClick={() => window.print()} className="btn-print">save a copy →</button>
+          <div style={{ background: "#fff", border: "1px solid #e8e8e8", padding: "24px 28px", textAlign: "left", marginBottom: 28 }}>
+            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 16 }}>what to do next</p>
+            <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 14 }}>
+              <span style={{ fontSize: 9, fontWeight: 400, color: "#ccc", marginTop: 1, flexShrink: 0 }}>01</span>
+              <p style={{ fontSize: 12, fontWeight: 300, color: "#555", lineHeight: 1.8 }}>
+                Download your signed offer letter using the button below.
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 9, fontWeight: 400, color: "#ccc", marginTop: 1, flexShrink: 0 }}>02</span>
+              <p style={{ fontSize: 12, fontWeight: 300, color: "#555", lineHeight: 1.8 }}>
+                Send the document to <span style={{ color: "#1a1a1a", fontWeight: 400 }}>jeddawear@gmail.com</span> within 24 hours to confirm your acceptance.
+              </p>
+            </div>
+          </div>
+          <button onClick={() => window.print()}
+            style={{ background: "#1a1a1a", border: "none", color: "#fff", fontFamily: sans, fontSize: 11, fontWeight: 300, padding: "13px 32px", cursor: "pointer", letterSpacing: 1.5, display: "block", width: "100%", marginBottom: 12 }}>
+            download offer letter →
+          </button>
+          <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", lineHeight: 1.8 }}>
+            Open your email app and attach the downloaded PDF.<br />Subject: <em>Offer Acceptance — {firstName}</em>
+          </p>
         </div>
       </div>
       {/* Print doc */}
