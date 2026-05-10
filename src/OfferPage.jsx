@@ -376,14 +376,61 @@ export default function OfferPage() {
           <p style={{ fontSize: 12, fontWeight: 300, color: "#666", lineHeight: 1.9, marginBottom: 24 }}>
             We're pleased to offer you a position at Jedda. After our conversation, we're confident you'd bring the right energy and capability to the role — and we'd love to welcome you to the team.
           </p>
+
+          {/* Offer Details */}
           <p className="eyebrow">offer details</p>
           <div className="rule-dark" style={{ marginBottom: 4 }} />
-          <div className="detail-grid">
+          <div className="detail-grid" style={{ marginBottom: 32 }}>
             {getDetails(rawMode === "both" ? "pt" : rawMode).map(([l, v]) => (
               <div key={l} className="detail-row"><p className="detail-label">{l}</p><p className="detail-value">{v}</p></div>
             ))}
           </div>
-          <div style={{ marginTop: 32 }}>
+
+          {/* What you'll do */}
+          <p className="eyebrow" style={{ marginTop: 28 }}>what you'll do</p>
+          <div className="rule-dark" style={{ marginBottom: 16 }} />
+          {(rawMode === "both" ? ZONES_PT : rawMode === "ft" ? ZONES_FT : ZONES_PT).map((z, i) => (
+            <div key={i} style={{ marginBottom: 16 }}>
+              <p style={{ fontSize: 11, fontWeight: 400, color: "#1a1a1a", marginBottom: 6 }}>{z.title.charAt(0).toUpperCase() + z.title.slice(1)}</p>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                {z.items.map((item, j) => (
+                  <li key={j} style={{ fontSize: 11, fontWeight: 300, color: "#555", lineHeight: 1.9, paddingLeft: 12, position: "relative" }}>
+                    <span style={{ position: "absolute", left: 0, color: "#ccc" }}>—</span>{item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          {/* Your Schedule */}
+          <p className="eyebrow" style={{ marginTop: 28 }}>your schedule</p>
+          <div className="rule-dark" style={{ marginBottom: 0 }} />
+          {rawMode === "ft" || (rawMode === "both") ? (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
+                <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 1, textTransform: "uppercase" }}>store shifts</span>
+                <span style={{ fontSize: 11, fontWeight: 300, color: "#1a1a1a", textAlign: "right", maxWidth: 320 }}>3 full days (10.00–17.00) + 1 half day, any days except Wednesday</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
+                <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 1, textTransform: "uppercase" }}>customer experience</span>
+                <span style={{ fontSize: 11, fontWeight: 300, color: "#1a1a1a", textAlign: "right", maxWidth: 320 }}>Weekdays, remote — DM, WhatsApp, order handling</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
+                <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 1, textTransform: "uppercase" }}>shift days</span>
+                <span style={{ fontSize: 11, fontWeight: 300, color: "#1a1a1a", textAlign: "right", maxWidth: 320 }}>Any 3 days per week, agreed with the team. Store closed on Wednesdays.</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
+                <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 1, textTransform: "uppercase" }}>shift hours</span>
+                <span style={{ fontSize: 11, fontWeight: 300, color: "#1a1a1a", textAlign: "right" }}>10.00 – 17.00</span>
+              </div>
+            </>
+          )}
+
+          {/* Signature */}
+          <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid #f0f0f0" }}>
             <p style={{ fontSize: 8, fontWeight: 300, color: "#bbb", marginBottom: 8, letterSpacing: 2, textTransform: "uppercase" }}>your signature</p>
             {sigDataUrl && <img src={sigDataUrl} alt="signature" style={{ height: 80, objectFit: "contain", objectPosition: "left", borderBottom: "1px solid #1a1a1a" }} />}
             <p style={{ fontSize: 11, fontWeight: 300, marginTop: 8 }}>{app.full_name}</p>
