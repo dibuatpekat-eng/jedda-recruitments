@@ -656,36 +656,13 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
 const OFFLINE_LOCATION = "Fragment Project — Jl. Ir. H. Juanda No.23, Bandung";
 const OFFLINE_MAPS_URL = "https://share.google/D3ep92gL1rmffWXYZ";
 
-function buildInterviewEmail(app, division, dt) {
+function buildInterviewEmail(app, mode, dt) {
   const firstName = app.full_name.split(" ")[0];
   const d = dt ? new Date(dt) : null;
   const dateStr = d ? d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "[date]";
   const timeStr = d ? d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "[time]";
 
-  if (division === "design") {
-    return `Hi ${firstName},
-
-After reviewing your alignment test, we think there's something worth exploring further. We'd like to invite you for an online interview:
-
-${dateStr} at ${timeStr}
-
-Does this work for you? If not, let us know and we'll find another slot. We'll send the details once confirmed.
-
-Jedda.`;
-  } else if (division === "creative") {
-    return `Hi ${firstName},
-
-We apologize for the delayed response — we received far more applications than expected, and we wanted to make sure we reviewed each one properly.
-
-We'd like to invite you for an online interview:
-
-${dateStr} at ${timeStr}
-
-Does this work for you? If not, let us know and we'll find another slot. We'll send the details once confirmed.
-
-Jedda.`;
-  } else {
-    // retail (default)
+  if (mode === "offline") {
     return `Hi ${firstName},
 
 Congratulations — you've made it to the interview stage.
@@ -701,18 +678,30 @@ Please reply to confirm whether this time works for you. If it doesn't, let us k
 
 See you there,
 Jedda.`;
+  } else {
+    return `Hi ${firstName},
+
+Congratulations — you've made it to the interview stage.
+
+We received hundreds of applications, and we're glad yours stood out. Before we finalize the team, we'd like to have a conversation with you — just a casual call to get a better sense of who you are and how you'd fit into the Jedda environment.
+
+We're proposing the following time slot for our online interview:
+${dateStr} at ${timeStr}
+
+Please reply to confirm whether this works for you. If it doesn't, let us know and we'll find another slot. Once confirmed, we'll send over the meeting link.
+
+See you soon,
+Jedda.`;
   }
 }
 
 function InterviewModal({ app, onClose, onConfirm }) {
-  const detectedDiv = app ? getDivision(app.position) : "retail";
-  const defaultDiv = ["design", "creative", "retail"].includes(detectedDiv) ? detectedDiv : "retail";
-  const [division, setDivision] = useState(defaultDiv);
+  const [mode, setMode] = useState("offline");
   const [dt, setDt] = useState("");
   if (!app) return null;
 
   const preview = dt
-    ? buildInterviewEmail(app, division, dt)
+    ? buildInterviewEmail(app, mode, dt)
     : "select a date & time first.";
 
   return (
@@ -721,26 +710,25 @@ function InterviewModal({ app, onClose, onConfirm }) {
         <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>schedule interview</p>
         <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 24 }}>{app.full_name} — {app.position?.toLowerCase()}</p>
 
-        {/* Division toggle */}
-        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>division</p>
+        {/* Mode toggle */}
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>interview type</p>
         <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
-          {["design", "creative", "retail"].map((d, i) => (
-            <button key={d} onClick={() => setDivision(d)}
+          {["offline", "online"].map((m, i) => (
+            <button key={m} onClick={() => setMode(m)}
               style={{
-                flex: 1, padding: "9px 0", border: "none",
-                borderRight: i < 2 ? "1px solid #f0f0f0" : "none",
-                background: division === d ? "#1a1a1a" : "#fff",
-                color: division === d ? "#fff" : "#bbb",
+                flex: 1, padding: "9px 0", border: "none", borderRight: i === 0 ? "1px solid #f0f0f0" : "none",
+                background: mode === m ? "#1a1a1a" : "#fff",
+                color: mode === m ? "#fff" : "#bbb",
                 fontFamily: sans, fontSize: 11, fontWeight: 300, cursor: "pointer",
                 transition: "all 0.15s", letterSpacing: 0.5
               }}>
-              {d}
+              {m}
             </button>
           ))}
         </div>
 
-        {/* Retail location info */}
-        {division === "retail" && (
+        {/* Offline location info */}
+        {mode === "offline" && (
           <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "12px 14px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 4 }}>location</p>
@@ -764,7 +752,98 @@ function InterviewModal({ app, onClose, onConfirm }) {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
-          <button onClick={() => { if (!dt) return; onConfirm(dt, division); }} style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer", opacity: dt ? 1 : 0.3 }}>send email →</button>
+          <button onClick={() => { if (!dt) return; onConfirm(dt, mode); }} style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer", opacity: dt ? 1 : 0.3 }}>send email →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ─── Offer Modal ────────────────────────────────────────────
+function formatIDR(raw) {
+  const num = raw.replace(/[^0-9]/g, "");
+  if (!num) return "";
+  return parseInt(num, 10).toLocaleString("id-ID");
+}
+
+function OfferModal({ app, onClose, onConfirm }) {
+  const [sendMode, setSendMode] = useState("both"); // "pt" | "ft" | "both"
+  const [ptSalary, setPtSalary] = useState("");
+  const [ftSalary, setFtSalary] = useState("");
+  const [ftSalaryProbation, setFtSalaryProbation] = useState("");
+  const [startDate, setStartDate] = useState("");
+  if (!app) return null;
+
+  const link = `https://careers.jeddawear.com/offer?id=${app.id}`;
+  const firstName = app.full_name.split(" ")[0];
+  const showPT = sendMode === "pt" || sendMode === "both";
+  const showFT = sendMode === "ft" || sendMode === "both";
+  const canSend = startDate && (!showPT || ptSalary) && (!showFT || (ftSalary && ftSalaryProbation));
+
+  const buildEmail = () => {
+    let typeNote = "";
+    if (sendMode === "both") {
+      typeNote = "We'd like to offer you a position at Jedda, and we're open to either a full-time or part-time arrangement — whichever works best for you. The offer details for both options are outlined in the link below.";
+    } else if (sendMode === "ft") {
+      typeNote = "We're extending this offer as a full-time position — though if you'd like to discuss a part-time arrangement instead, we're open to that conversation.";
+    } else {
+      typeNote = "We're extending this offer as a part-time position — though if you'd like to discuss a full-time arrangement instead, we're open to that conversation.";
+    }
+    return `Hi ${firstName},\n\nCongratulations — we'd love to have you on the Jedda team.\n\n${typeNote}\n\nPlease review the full offer details via the link below. Everything is outlined there, and you can sign digitally to confirm your acceptance:\n\n${link}\n\nThe offer will remain open for 7 days. Feel free to reach out if you have any questions.\n\nJedda.`;
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.12)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 500, border: "1px solid #f0f0f0", fontFamily: sans, maxHeight: "90vh", overflowY: "auto" }}>
+        <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>send job offer</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 28 }}>{app.full_name} — {app.position?.toLowerCase()}</p>
+
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>offer type</p>
+        <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
+          {[["pt","part-time only"],["ft","full-time only"],["both","both options"]].map(([val, lbl], i) => (
+            <button key={val} onClick={() => setSendMode(val)}
+              style={{ flex: 1, padding: "9px 0", border: "none", borderRight: i < 2 ? "1px solid #f0f0f0" : "none", background: sendMode === val ? "#1a1a1a" : "#fff", color: sendMode === val ? "#fff" : "#bbb", fontFamily: sans, fontSize: 10, fontWeight: 300, cursor: "pointer", transition: "all 0.15s", letterSpacing: 0.3 }}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>start date</p>
+        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+          style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 24 }} />
+
+        {showPT && (<>
+          {sendMode === "both" && <p style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, textTransform: "uppercase", color: "#1a1a1a", marginBottom: 12 }}>part-time</p>}
+          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary (IDR / month)</p>
+          <input type="text" placeholder="e.g. 2,500,000" value={ptSalary}
+            onChange={e => setPtSalary(formatIDR(e.target.value))}
+            style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 24 }} />
+        </>)}
+
+        {showFT && (<>
+          {sendMode === "both" && <p style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, textTransform: "uppercase", color: "#1a1a1a", marginBottom: 12 }}>full-time</p>}
+          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary during probation (IDR / month)</p>
+          <input type="text" placeholder="e.g. 3,500,000" value={ftSalaryProbation}
+            onChange={e => setFtSalaryProbation(formatIDR(e.target.value))}
+            style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 16 }} />
+          <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary after probation (IDR / month)</p>
+          <input type="text" placeholder="e.g. 4,500,000" value={ftSalary}
+            onChange={e => setFtSalary(formatIDR(e.target.value))}
+            style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 28 }} />
+        </>)}
+
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
+        <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
+          {buildEmail()}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
+          <button onClick={() => { if (!canSend) return; onConfirm({ sendMode, ptSalary, ftSalary, ftSalaryProbation, startDate, emailBody: buildEmail() }); }}
+            style={{ background: "none", border: "none", borderBottom: `1px solid ${canSend ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: canSend ? "#1a1a1a" : "#bbb", cursor: canSend ? "pointer" : "default" }}>
+            send offer →
+          </button>
         </div>
       </div>
     </div>
@@ -785,84 +864,6 @@ function AcceptanceModal({ app, onClose, onConfirm }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
           <button onClick={onConfirm} style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>send email →</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Offer Modal ────────────────────────────────────────────
-function OfferModal({ app, onClose, onConfirm }) {
-  const [workType, setWorkType] = useState("Part-Time");
-  const [salary, setSalary] = useState("");
-  const [salaryProbation, setSalaryProbation] = useState("");
-  const [startDate, setStartDate] = useState("");
-  if (!app) return null;
-
-  const isFull = workType === "Full-Time";
-  const link = `https://careers.jeddawear.com/offer?id=${app.id}`;
-
-  const canSend = salary && startDate && (isFull ? salaryProbation : true);
-
-  const buildEmail = () => {
-    const firstName = app.full_name.split(" ")[0];
-    const typeNote = `We're extending this offer as ${workType === "Full-Time" ? "a full-time position" : "a part-time position"} — though if you'd like to discuss the other arrangement, we're open to that conversation.`;
-    return `Hi ${firstName},\n\nCongratulations — we'd love to have you on the Jedda team.\n\n${typeNote}\n\nPlease review the full offer details via the link below. Everything is outlined there, and you can sign digitally to confirm your acceptance:\n\n${link}\n\nThe offer will remain open for 7 days. Feel free to reach out if you have any questions.\n\nJedda.`;
-  };
-
-  return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.12)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 480, border: "1px solid #f0f0f0", fontFamily: sans, maxHeight: "90vh", overflowY: "auto" }}>
-        <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>send job offer</p>
-        <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 28 }}>{app.full_name} — {app.position?.toLowerCase()}</p>
-
-        {/* Work type toggle */}
-        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>employment type</p>
-        <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
-          {["Part-Time", "Full-Time"].map((t, i) => (
-            <button key={t} onClick={() => setWorkType(t)}
-              style={{ flex: 1, padding: "9px 0", border: "none", borderRight: i === 0 ? "1px solid #f0f0f0" : "none", background: workType === t ? "#1a1a1a" : "#fff", color: workType === t ? "#fff" : "#bbb", fontFamily: sans, fontSize: 11, fontWeight: 300, cursor: "pointer", transition: "all 0.15s", letterSpacing: 0.5 }}>
-              {t.toLowerCase()}
-            </button>
-          ))}
-        </div>
-
-        {/* Start date */}
-        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>start date</p>
-        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-          style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 22 }} />
-
-        {/* Salary */}
-        {isFull ? (
-          <>
-            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary during probation (IDR)</p>
-            <input type="text" placeholder="e.g. 3,500,000" value={salaryProbation} onChange={e => setSalaryProbation(e.target.value)}
-              style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 22 }} />
-            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary after probation (IDR)</p>
-            <input type="text" placeholder="e.g. 4,500,000" value={salary} onChange={e => setSalary(e.target.value)}
-              style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 28 }} />
-          </>
-        ) : (
-          <>
-            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary (IDR)</p>
-            <input type="text" placeholder="e.g. 2,500,000" value={salary} onChange={e => setSalary(e.target.value)}
-              style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 28 }} />
-          </>
-        )}
-
-        {/* Email preview */}
-        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
-        <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
-          {buildEmail()}
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
-          <button
-            onClick={() => { if (!canSend) return; onConfirm({ workType, salary, salaryProbation, startDate }); }}
-            style={{ background: "none", border: "none", borderBottom: `1px solid ${canSend ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: canSend ? "#1a1a1a" : "#bbb", cursor: canSend ? "pointer" : "default" }}>
-            send offer →
-          </button>
         </div>
       </div>
     </div>
@@ -1057,8 +1058,7 @@ function InterviewPage({ apps, updateStatus, showToast }) {
             const d = a.interview_date ? new Date(a.interview_date) : null;
             const dateLabel = d ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—";
             const resendEmail = () => {
-              const division = a.interview_mode || getDivision(a.position) || "retail";
-              const body = buildInterviewEmail(a, division, a.interview_date);
+              const body = buildInterviewEmail(a, a.interview_mode || "offline", a.interview_date);
               window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=${encodeURIComponent(a.full_name.split(" ")[0])}%2C%20we%27d%20like%20to%20meet%20you.&body=${encodeURIComponent(body)}`, "_blank");
               showToast("email reopened ✓");
             };
@@ -1481,16 +1481,14 @@ export default function AdminDashboard() {
         <OfferModal
           app={offerApp}
           onClose={() => setOfferApp(null)}
-          onConfirm={({ workType, salary, salaryProbation, startDate }) => {
-            const firstName = offerApp.full_name.split(" ")[0];
-            const link = `https://careers.jeddawear.com/offer?id=${offerApp.id}`;
-            const body = `Hi ${firstName},\n\nFollowing our conversation, we'd like to formally extend an offer for you to join Jedda.\n\nPlease review the offer details via the link below and sign digitally to confirm your acceptance:\n\n${link}\n\nThe offer will remain open for 7 days. Feel free to reach out if you have any questions.\n\nJedda.`;
-            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(offerApp.email)}&su=${encodeURIComponent("An Offer from Jedda")}&body=${encodeURIComponent(body)}`, "_blank");
+          onConfirm={({ sendMode, ptSalary, ftSalary, ftSalaryProbation, startDate, emailBody }) => {
+            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(offerApp.email)}&su=${encodeURIComponent("An Offer from Jedda")}&body=${encodeURIComponent(emailBody)}`, "_blank");
+            const workType = sendMode === "pt" ? "Part-Time" : sendMode === "ft" ? "Full-Time" : "Part-Time / Full-Time";
             updateStatus(offerApp.id, "the final team", {
               offer_sent: true,
               offer_work_type: workType,
-              offer_salary: salary,
-              offer_salary_probation: salaryProbation,
+              offer_salary: ftSalary || ptSalary,
+              offer_salary_probation: ftSalaryProbation,
               offer_start_date: startDate,
             });
             setOfferApp(null);
