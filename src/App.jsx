@@ -70,7 +70,7 @@ const AVAIL_OPTIONS = ["immediately", "within 1 month", "within 3 months", "othe
 const sans = "'DM Sans', sans-serif";
 
 // Roles that require portfolio (design + creative divisions)
-const PORTFOLIO_REQUIRED_IDS = ["ddl", "fd", "vd", "csm", "dgs"];
+const PORTFOLIO_REQUIRED_IDS = ["fd", "vd", "csm"];
 
 const Logo = ({ hero = false, img = false }) => {
   const h = hero ? 20 : 14;
@@ -320,7 +320,7 @@ export default function App() {
           <p style={{ fontSize: 14, fontWeight: 300 }}>thank you for your application.</p>
           <div style={{ height: 10 }} />
           <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 1.8 }}>
-            we have received your submission and will review it carefully.<br />you will hear from us soon.
+            we have received your submission and will review it carefully.<br />if there's a fit, you'll hear from us.
           </p>
           <div style={{ height: 40 }} />
           <div style={{ width: "100%", height: 1, background: "#f0f0f0" }} />
