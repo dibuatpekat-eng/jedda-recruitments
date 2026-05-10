@@ -1594,8 +1594,7 @@ export default function AdminDashboard() {
           onClose={() => setInterviewApp(null)}
           onConfirm={(dt, mode) => {
             const body = buildInterviewEmail(interviewApp, mode, dt);
-            const interviewDivision = division || getDivision(interviewApp.position) || "retail";
-            const interviewSubject = interviewDivision === "retail"
+            const interviewSubject = mode === "retail"
               ? `${interviewApp.full_name.split(" ")[0]}, we'd like to meet you.`
               : `we'd like to talk — jedda`;
             window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(interviewApp.email)}&su=${encodeURIComponent(interviewSubject)}&body=${encodeURIComponent(body)}`, "_blank");
