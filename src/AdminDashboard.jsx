@@ -829,15 +829,18 @@ function ResendInterviewModal({ app, onClose, onSend }) {
 function ResendOfferModal({ app, onClose, onSend }) {
   const [sendMode, setSendMode] = useState(app?.offer_work_type?.toLowerCase().includes("/") ? "both" : app?.offer_work_type?.toLowerCase().includes("full") ? "ft" : "pt");
   const [ptSalary, setPtSalary] = useState(app?.offer_salary_pt || "");
-  const [ftSalary, setFtSalary] = useState(app?.offer_salary || "");
+  const parsedSalary = app?.offer_salary || "";
+  const [ftSalaryMin, setFtSalaryMin] = useState(parsedSalary.includes("–") ? parsedSalary.split("–")[0].trim() : parsedSalary);
+  const [ftSalaryMax, setFtSalaryMax] = useState(parsedSalary.includes("–") ? parsedSalary.split("–")[1].trim() : "");
   const [ftSalaryProbation, setFtSalaryProbation] = useState(app?.offer_salary_probation || "");
   const [startDate, setStartDate] = useState("");
   if (!app) return null;
+  const ftSalary = ftSalaryMin ? (ftSalaryMax ? `${ftSalaryMin} – ${ftSalaryMax}` : ftSalaryMin) : "";
   const link = `https://careers.jeddawear.com/offer?id=${app.id}`;
   const firstName = app.full_name.split(" ")[0];
   const showPT = sendMode === "pt" || sendMode === "both";
   const showFT = sendMode === "ft" || sendMode === "both";
-  const canSend = startDate && (!showPT || ptSalary) && (!showFT || (ftSalary && ftSalaryProbation));
+  const canSend = startDate && (!showPT || ptSalary) && (!showFT || (ftSalaryMin && ftSalaryProbation));
   const buildEmail = () => {
     let typeNote = "";
     if (sendMode === "both") typeNote = "We'd like to offer you a position at Jedda, and we're open to either a full-time or part-time arrangement — whichever works best for you. The offer details for both options are outlined in the link below.";
@@ -874,8 +877,13 @@ function ResendOfferModal({ app, onClose, onSend }) {
           <input type="text" placeholder="e.g. 3,500,000" value={ftSalaryProbation} onChange={e => setFtSalaryProbation(formatIDR(e.target.value))}
             style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 16 }} />
           <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary after probation (IDR / month)</p>
-          <input type="text" placeholder="e.g. 4.500.000 – 5.500.000" value={ftSalary} onChange={e => setFtSalary(e.target.value)}
-            style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 28 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+            <input type="text" placeholder="min" value={ftSalaryMin} onChange={e => setFtSalaryMin(formatIDR(e.target.value))}
+              style={{ flex: 1, border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent" }} />
+            <span style={{ fontSize: 12, color: "#ccc", flexShrink: 0 }}>–</span>
+            <input type="text" placeholder="max (optional)" value={ftSalaryMax} onChange={e => setFtSalaryMax(formatIDR(e.target.value))}
+              style={{ flex: 1, border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent" }} />
+          </div>
         </>)}
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
         <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{buildEmail()}</div>
@@ -894,16 +902,17 @@ function ResendOfferModal({ app, onClose, onSend }) {
 function OfferModal({ app, onClose, onConfirm }) {
   const [sendMode, setSendMode] = useState("both"); // "pt" | "ft" | "both"
   const [ptSalary, setPtSalary] = useState("");
-  const [ftSalary, setFtSalary] = useState("");
+  const [ftSalaryMin, setFtSalaryMin] = useState("");
+  const [ftSalaryMax, setFtSalaryMax] = useState("");
   const [ftSalaryProbation, setFtSalaryProbation] = useState("");
   const [startDate, setStartDate] = useState("");
   if (!app) return null;
-
+  const ftSalary = ftSalaryMin ? (ftSalaryMax ? `${ftSalaryMin} – ${ftSalaryMax}` : ftSalaryMin) : "";
   const link = `https://careers.jeddawear.com/offer?id=${app.id}`;
   const firstName = app.full_name.split(" ")[0];
   const showPT = sendMode === "pt" || sendMode === "both";
   const showFT = sendMode === "ft" || sendMode === "both";
-  const canSend = startDate && (!showPT || ptSalary) && (!showFT || (ftSalary && ftSalaryProbation));
+  const canSend = startDate && (!showPT || ptSalary) && (!showFT || (ftSalaryMin && ftSalaryProbation));
 
   const buildEmail = () => {
     let typeNote = "";
@@ -952,9 +961,13 @@ function OfferModal({ app, onClose, onConfirm }) {
             onChange={e => setFtSalaryProbation(formatIDR(e.target.value))}
             style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 16 }} />
           <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary after probation (IDR / month)</p>
-          <input type="text" placeholder="e.g. 4.500.000 – 5.500.000" value={ftSalary}
-            onChange={e => setFtSalary(e.target.value)}
-            style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 28 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+            <input type="text" placeholder="min" value={ftSalaryMin} onChange={e => setFtSalaryMin(formatIDR(e.target.value))}
+              style={{ flex: 1, border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent" }} />
+            <span style={{ fontSize: 12, color: "#ccc", flexShrink: 0 }}>–</span>
+            <input type="text" placeholder="max (optional)" value={ftSalaryMax} onChange={e => setFtSalaryMax(formatIDR(e.target.value))}
+              style={{ flex: 1, border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent" }} />
+          </div>
         </>)}
 
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
