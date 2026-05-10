@@ -874,7 +874,7 @@ function ResendOfferModal({ app, onClose, onSend }) {
           <input type="text" placeholder="e.g. 3,500,000" value={ftSalaryProbation} onChange={e => setFtSalaryProbation(formatIDR(e.target.value))}
             style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 16 }} />
           <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary after probation (IDR / month)</p>
-          <input type="text" placeholder="e.g. 4,500,000" value={ftSalary} onChange={e => setFtSalary(formatIDR(e.target.value))}
+          <input type="text" placeholder="e.g. 4.500.000 – 5.500.000" value={ftSalary} onChange={e => setFtSalary(e.target.value)}
             style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 28 }} />
         </>)}
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
@@ -952,8 +952,8 @@ function OfferModal({ app, onClose, onConfirm }) {
             onChange={e => setFtSalaryProbation(formatIDR(e.target.value))}
             style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 16 }} />
           <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary after probation (IDR / month)</p>
-          <input type="text" placeholder="e.g. 4,500,000" value={ftSalary}
-            onChange={e => setFtSalary(formatIDR(e.target.value))}
+          <input type="text" placeholder="e.g. 4.500.000 – 5.500.000" value={ftSalary}
+            onChange={e => setFtSalary(e.target.value)}
             style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 28 }} />
         </>)}
 

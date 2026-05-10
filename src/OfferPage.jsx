@@ -306,7 +306,7 @@ export default function OfferPage() {
       rows.push(["start date", app.offer_start_date || "—"]);
       rows.push(["probation period", "2 months"]);
       if (app.offer_salary_probation) rows.push(["salary during probation", `IDR ${app.offer_salary_probation} / month`]);
-      if (app.offer_salary) rows.push(["salary after probation", `IDR ${app.offer_salary} / month`]);
+      if (app.offer_salary) rows.push(["salary after probation", app.offer_salary]);
     } else {
       rows.push(["position", "Sales Associate"]);
       rows.push(["employment type", "Part-Time"]);
