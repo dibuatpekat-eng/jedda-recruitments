@@ -117,12 +117,12 @@ function WeekSchedule({ mode }) {
           <div style={{ padding: "12px 14px", border: "1px solid #ebebeb", borderRadius: 3 }}>
             <p style={{ fontSize: 8, fontWeight: 300, letterSpacing: 1.5, color: "#bbb", marginBottom: 4, textTransform: "uppercase" }}>store shifts</p>
             <p style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a" }}>3 full days + 1 half day</p>
-            <p style={{ fontSize: 10, fontWeight: 200, color: "#aaa", marginTop: 2 }}>in-store</p>
+            <p style={{ fontSize: 10, fontWeight: 300, color: "#aaa", marginTop: 2 }}>in-store</p>
           </div>
           <div style={{ padding: "12px 14px", border: "1px solid #ebebeb", borderRadius: 3 }}>
             <p style={{ fontSize: 8, fontWeight: 300, letterSpacing: 1.5, color: "#bbb", marginBottom: 4, textTransform: "uppercase" }}>daily operations</p>
             <p style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a" }}>every working day</p>
-            <p style={{ fontSize: 10, fontWeight: 200, color: "#aaa", marginTop: 2 }}>comms · orders · 09.00–17.00</p>
+            <p style={{ fontSize: 10, fontWeight: 300, color: "#aaa", marginTop: 2 }}>comms · orders · 09.00–17.00</p>
           </div>
         </div>
       )}
@@ -250,6 +250,7 @@ export default function OfferPage() {
   const [sigDataUrl, setSigDataUrl] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState("");
+  const [readOnly, setReadOnly] = useState(false);
 
   const id = new URLSearchParams(window.location.search).get("id");
 
@@ -286,7 +287,7 @@ export default function OfferPage() {
     finally { setSubmitting(false); }
   };
 
-  if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans }}><p style={{ fontSize: 11, fontWeight: 200, color: "#bbb", letterSpacing: 2 }}>loading...</p></div>;
+  if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans }}><p style={{ fontSize: 11, fontWeight: 300, color: "#bbb", letterSpacing: 2 }}>loading...</p></div>;
   if (error) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans }}><p style={{ fontSize: 11, fontWeight: 300, color: "#bbb" }}>{error}</p></div>;
 
   const rawMode = getMode(app.offer_work_type);
@@ -328,7 +329,7 @@ export default function OfferPage() {
           <p style={{ fontSize: 10, letterSpacing: 5, color: "#bbb", marginBottom: 28, fontWeight: 400 }}>JEDDA</p>
           <div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto 32px" }} />
           <p style={{ fontSize: 18, fontWeight: 300, marginBottom: 12 }}>You're in.</p>
-          <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 2, maxWidth: 320, margin: "0 auto 36px" }}>
+          <p style={{ fontSize: 12, fontWeight: 300, color: "#999", lineHeight: 2, maxWidth: 320, margin: "0 auto 36px" }}>
             Your signature has been recorded. To finalize your placement, please complete the step below.
           </p>
           <div style={{ background: "#fff", border: "1px solid #e8e8e8", padding: "24px 28px", textAlign: "left", marginBottom: 28 }}>
@@ -350,9 +351,14 @@ export default function OfferPage() {
             style={{ background: "#1a1a1a", border: "none", color: "#fff", fontFamily: sans, fontSize: 11, fontWeight: 300, padding: "13px 32px", cursor: "pointer", letterSpacing: 1.5, display: "block", width: "100%", marginBottom: 12 }}>
             download offer letter →
           </button>
-          <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", lineHeight: 1.8 }}>
+          <p style={{ fontSize: 10, fontWeight: 300, color: "#bbb", lineHeight: 1.8 }}>
             Open your email app and attach the downloaded PDF.<br />Subject: <em>Offer Acceptance — {firstName}</em>
           </p>
+          <div style={{ height: 24 }} />
+          <button onClick={() => { setReadOnly(true); setPhase("offer"); }}
+            style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#bbb", cursor: "pointer", letterSpacing: 1, borderBottom: "1px solid #e0e0e0", paddingBottom: 2 }}>
+            ← view offer details
+          </button>
         </div>
       </div>
       {/* Print doc */}
@@ -367,7 +373,7 @@ export default function OfferPage() {
           <p style={{ fontSize: 22, fontWeight: 300, marginBottom: 4 }}>{roleTitle}</p>
           <div className="rule-light" style={{ marginBottom: 24 }} />
           <p style={{ fontSize: 13, fontWeight: 300, marginBottom: 10 }}>Dear {firstName},</p>
-          <p style={{ fontSize: 12, fontWeight: 200, color: "#666", lineHeight: 1.9, marginBottom: 24 }}>
+          <p style={{ fontSize: 12, fontWeight: 300, color: "#666", lineHeight: 1.9, marginBottom: 24 }}>
             We're pleased to offer you a position at Jedda. After our conversation, we're confident you'd bring the right energy and capability to the role — and we'd love to welcome you to the team.
           </p>
           <p className="eyebrow">offer details</p>
@@ -422,7 +428,7 @@ export default function OfferPage() {
         {/* Greeting */}
         <div className="section">
           <p style={{ fontSize: 13, fontWeight: 300, marginBottom: 12 }}>Dear {firstName},</p>
-          <p style={{ fontSize: 12, fontWeight: 200, color: "#666", lineHeight: 2 }}>
+          <p style={{ fontSize: 12, fontWeight: 300, color: "#666", lineHeight: 2 }}>
             We're pleased to offer you a position at Jedda. After our conversation, we're confident you'd bring the right energy and capability to the role — and we'd love to welcome you to the team.
           </p>
         </div>
@@ -452,7 +458,7 @@ export default function OfferPage() {
         <div className="section">
           <p className="eyebrow">your role</p>
           <div className="rule-dark" />
-          <p style={{ fontSize: 12, fontWeight: 200, color: "#888", lineHeight: 1.9, margin: "16px 0 18px" }}>
+          <p style={{ fontSize: 12, fontWeight: 300, color: "#888", lineHeight: 1.9, margin: "16px 0 18px" }}>
             {displayMode === "ft"
               ? "You own the full customer journey at Jedda — from the moment someone walks into the store, to the DM they send at 9pm, to the order they place online. One person who holds it all together."
               : "You're the face of Jedda in the store. Your focus is the people who walk in, the space they experience, and making sure every interaction feels considered."}
@@ -467,26 +473,40 @@ export default function OfferPage() {
 
         {/* Closing */}
         <div className="rule-light" style={{ marginBottom: 24 }} />
-        <p style={{ fontSize: 12, fontWeight: 200, color: "#666", lineHeight: 2, marginBottom: 40 }}>
+        <p style={{ fontSize: 12, fontWeight: 300, color: "#666", lineHeight: 2, marginBottom: 40 }}>
           Please review this offer carefully. If you'd like to accept, sign below — your digital signature will be recorded along with the timestamp. You can also print or save this document for your records.
         </p>
 
-        {/* Signature */}
-        <div style={{ marginBottom: 40, maxWidth: 380 }}>
-          <p style={{ fontSize: 8, fontWeight: 300, letterSpacing: 2, color: "#bbb", marginBottom: 12, textTransform: "uppercase" }}>your signature</p>
-          <SigCanvas onSign={setSignature} onClear={() => setSignature(null)} />
-          <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", marginTop: 8 }}>{app.full_name}</p>
-        </div>
-
-        {/* CTA */}
-        <div className="cta-row no-print">
-          {submitErr && <p style={{ fontSize: 11, color: "#c47a5a", fontWeight: 300 }}>{submitErr}</p>}
-          {!signature && <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>please sign above to accept</p>}
-          <button className={`btn-accept${signature ? " on" : ""}`} disabled={!signature || submitting} onClick={handleAccept}>
-            {submitting ? "confirming..." : "accept offer →"}
-          </button>
-          <button className="btn-print" onClick={() => window.print()}>print / save</button>
-        </div>
+        {/* Signature / CTA */}
+        {readOnly ? (
+          <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 28, marginBottom: 40 }}>
+            <p style={{ fontSize: 12, fontWeight: 300, color: "#aaa", lineHeight: 1.9, marginBottom: 20 }}>
+              You've already accepted this offer. If you'd like to make any changes, please reach out to us directly.
+            </p>
+            <button onClick={() => setPhase("accepted")}
+              style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#bbb", cursor: "pointer", letterSpacing: 1, borderBottom: "1px solid #e0e0e0", paddingBottom: 2 }}>
+              ← back
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Signature */}
+            <div style={{ marginBottom: 40, maxWidth: 380 }}>
+              <p style={{ fontSize: 8, fontWeight: 300, letterSpacing: 2, color: "#bbb", marginBottom: 12, textTransform: "uppercase" }}>your signature</p>
+              <SigCanvas onSign={setSignature} onClear={() => setSignature(null)} />
+              <p style={{ fontSize: 10, fontWeight: 300, color: "#bbb", marginTop: 8 }}>{app.full_name}</p>
+            </div>
+            {/* CTA */}
+            <div className="cta-row no-print">
+              {submitErr && <p style={{ fontSize: 11, color: "#c47a5a", fontWeight: 300 }}>{submitErr}</p>}
+              {!signature && <p style={{ fontSize: 11, fontWeight: 300, color: "#bbb" }}>please sign above to accept</p>}
+              <button className={`btn-accept${signature ? " on" : ""}`} disabled={!signature || submitting} onClick={handleAccept}>
+                {submitting ? "confirming..." : "accept offer →"}
+              </button>
+              <button className="btn-print" onClick={() => window.print()}>print / save</button>
+            </div>
+          </>
+        )}
 
         <div style={{ marginTop: 64, borderTop: "1px solid #f0f0f0", paddingTop: 16, textAlign: "center", fontSize: 8, fontWeight: 200, color: "#ccc", letterSpacing: 2, textTransform: "uppercase" }}>
           confidential — please do not share or distribute
