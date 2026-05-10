@@ -88,14 +88,17 @@ canvas{display:block;width:100%;height:100px;background:#fafafa;border:1px solid
 .btn-print{background:none;border:none;border-bottom:1px solid #ddd;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:300;color:#bbb;cursor:pointer;padding-bottom:2px;letter-spacing:1px}
 .cta-row{display:flex;align-items:center;gap:24px;border-top:1px solid #f0f0f0;padding-top:28px;flex-wrap:wrap}
 @media print{
-  @page{size:A4 portrait;margin:20mm 18mm 20mm 18mm}
+  @page{size:A4 portrait;margin:22mm 20mm 22mm 20mm}
   .topbar,.cta-row,.no-print,.btn-print,.conn-box,.zones{display:none!important}
   .print-show{display:block!important}
   .doc{padding:0;max-width:100%;margin:0}
   body,html{background:#fff;font-size:11px}
-  .detail-row{break-inside:avoid}
+  .detail-row{break-inside:avoid;page-break-inside:avoid}
+  .print-role-block{break-inside:avoid;page-break-inside:avoid}
+  .print-schedule-row{break-inside:avoid;page-break-inside:avoid}
+  .print-section{break-inside:avoid;page-break-inside:avoid}
+  .print-sig{break-inside:avoid;page-break-inside:avoid}
   h1,h2,p{orphans:3;widows:3}
-  .section{break-inside:avoid;margin-bottom:24px}
 }
 `;
 
@@ -347,7 +350,7 @@ export default function OfferPage() {
               </p>
             </div>
           </div>
-          <button onClick={() => window.print()}
+          <button onClick={() => { setTimeout(() => window.print(), 150); }}
             style={{ background: "#1a1a1a", border: "none", color: "#fff", fontFamily: sans, fontSize: 11, fontWeight: 300, padding: "13px 32px", cursor: "pointer", letterSpacing: 1.5, display: "block", width: "100%", marginBottom: 12 }}>
             download offer letter →
           </button>
@@ -403,26 +406,26 @@ export default function OfferPage() {
           ))}
 
           {/* Your Schedule */}
-          <p className="eyebrow" style={{ marginTop: 28 }}>your schedule</p>
+          <p className="eyebrow print-section" style={{ marginTop: 28 }}>your schedule</p>
           <div className="rule-dark" style={{ marginBottom: 0 }} />
           {rawMode === "ft" || (rawMode === "both") ? (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
+              <div className="print-schedule-row" style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
                 <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 1, textTransform: "uppercase" }}>store shifts</span>
                 <span style={{ fontSize: 11, fontWeight: 300, color: "#1a1a1a", textAlign: "right", maxWidth: 320 }}>3 full days (10.00–17.00) + 1 half day, any days except Wednesday</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
+              <div className="print-schedule-row" style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
                 <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 1, textTransform: "uppercase" }}>customer experience</span>
                 <span style={{ fontSize: 11, fontWeight: 300, color: "#1a1a1a", textAlign: "right", maxWidth: 320 }}>Weekdays, remote — DM, WhatsApp, order handling</span>
               </div>
             </>
           ) : (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
+              <div className="print-schedule-row" style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
                 <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 1, textTransform: "uppercase" }}>shift days</span>
                 <span style={{ fontSize: 11, fontWeight: 300, color: "#1a1a1a", textAlign: "right", maxWidth: 320 }}>Any 3 days per week, agreed with the team. Store closed on Wednesdays.</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
+              <div className="print-schedule-row" style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
                 <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 1, textTransform: "uppercase" }}>shift hours</span>
                 <span style={{ fontSize: 11, fontWeight: 300, color: "#1a1a1a", textAlign: "right" }}>10.00 – 17.00</span>
               </div>
@@ -430,7 +433,7 @@ export default function OfferPage() {
           )}
 
           {/* Signature */}
-          <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid #f0f0f0" }}>
+          <div className="print-sig" style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid #f0f0f0" }}>
             <p style={{ fontSize: 8, fontWeight: 300, color: "#bbb", marginBottom: 8, letterSpacing: 2, textTransform: "uppercase" }}>your signature</p>
             {sigDataUrl && <img src={sigDataUrl} alt="signature" style={{ height: 80, objectFit: "contain", objectPosition: "left", borderBottom: "1px solid #1a1a1a" }} />}
             <p style={{ fontSize: 11, fontWeight: 300, marginTop: 8 }}>{app.full_name}</p>
