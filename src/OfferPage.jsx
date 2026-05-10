@@ -117,19 +117,19 @@ function WeekSchedule({ mode }) {
           <div style={{ padding: "12px 14px", border: "1px solid #ebebeb", borderRadius: 3 }}>
             <p style={{ fontSize: 8, fontWeight: 300, letterSpacing: 1.5, color: "#bbb", marginBottom: 4, textTransform: "uppercase" }}>store shifts</p>
             <p style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a" }}>3 full days + 1 half day</p>
-            <p style={{ fontSize: 10, fontWeight: 300, color: "#aaa", marginTop: 2 }}>10.00–17.00 · half day 10.00–14.00</p>
+            <p style={{ fontSize: 10, fontWeight: 300, color: "#aaa", marginTop: 2 }}>10.00–17.00 · half day flexible</p>
           </div>
           <div style={{ padding: "12px 14px", border: "1px solid #ebebeb", borderRadius: 3 }}>
-            <p style={{ fontSize: 8, fontWeight: 300, letterSpacing: 1.5, color: "#bbb", marginBottom: 4, textTransform: "uppercase" }}>daily operations</p>
-            <p style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a" }}>every working day</p>
-            <p style={{ fontSize: 10, fontWeight: 300, color: "#aaa", marginTop: 2 }}>comms · orders · 10.00–17.00</p>
+            <p style={{ fontSize: 8, fontWeight: 300, letterSpacing: 1.5, color: "#bbb", marginBottom: 4, textTransform: "uppercase" }}>customer experience</p>
+            <p style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a" }}>weekdays · remote</p>
+            <p style={{ fontSize: 10, fontWeight: 300, color: "#aaa", marginTop: 2 }}>DM · WhatsApp · order handling</p>
           </div>
         </div>
       )}
       <p className="schedule-note">
         {mode === "pt"
-          ? "You choose any 3 days per week — consistent days, agreed with the team. Shift hours are 10.00–17.00. Store is closed on Wednesdays."
-          : "You choose 3 full days (10.00–17.00) + 1 half day (10.00–14.00) for store shifts — any days except Wednesday. Customer operations run daily."}
+          ? "You choose any 3 days per week — agreed with the team. Shift hours are 10.00–17.00. Store is closed on Wednesdays."
+          : "You choose 3 full days (10.00–17.00) + 1 half day for store shifts — any days except Wednesday. Customer experience work is handled remotely on weekdays."}
       </p>
     </div>
   );
