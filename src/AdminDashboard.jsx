@@ -5,11 +5,10 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const PASS = import.meta.env.VITE_ADMIN_PASSWORD || "jedda2026";
-const DUMMY_IDS = [7, 294]; // Agif test accounts — actions fire but don't advance status
+const DUMMY_IDS = [7, 294];
 const sans = "'DM Sans', sans-serif";
 
 // ─── Scoring constants ──────────────────────────────────────
-// FIX: correct picks adalah 2, 7, 10 (bukan 2, 6)
 const CORRECT_PICKS = [2, 7, 10];
 const IDEAL_RANKING = [
   "The quality and construction — the intention behind how it's made",
@@ -19,10 +18,8 @@ const IDEAL_RANKING = [
   "How it looks in photos",
   "Whether it's on-trend",
 ];
-// FIX: bobot Q1 → 15%, Q4 → 5.5%, Q5 → 9.5%
 const WEIGHTS = { q1: 0.15, q2: 0.15, q3: 0.25, q4: 0.055, q5: 0.095, q6: 0.10, q7: 0.20 };
 
-// FIX: scoreQ1 sekarang 3 pilihan — 100/75/40/0
 function scoreQ1(visualPicks) {
   if (!visualPicks) return null;
   const picks = visualPicks.split(",").map(s => parseInt(s.trim()));
@@ -97,6 +94,15 @@ function statusStyle(s = "") {
   };
   return map[s] || { bg: "#f5f5f5", color: "#aaa" };
 }
+function fmtDate(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+function fmtDateTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;300;400;500&display=swap');
@@ -113,28 +119,73 @@ input:focus{border-color:#1a1a1a!important;outline:none}
 .ar-btn:hover{opacity:0.5}
 .ar-primary:hover{opacity:0.4!important}
 .ar-danger:hover{color:#8b2a00!important}
-.tc-card:hover{border-color:#ccc!important}
 .f-btn:hover:not(.f-active){color:#1a1a1a}
 .score-input{width:48px;border:none;border-bottom:1px solid #e8e8e4;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:300;color:#1a1a1a;background:transparent;text-align:right;padding:2px 0}
 .score-input:focus{outline:none;border-bottom-color:#1a1a1a}
 .score-input::-webkit-inner-spin-button{opacity:0}
+.email-confirm-modal{position:fixed;inset:0;background:rgba(0,0,0,0.12);z-index:400;display:flex;align-items:center;justify-content:center}
 `;
 
 // ─── Gmail helpers ──────────────────────────────────────────
-function openRequestDocEmail(a) {
+function buildRequestDocEmail(a) {
+  return {
+    to: a.email,
+    subject: "Your Jedda Application — Portfolio Update Request",
+    body: `Hi ${a.full_name.split(" ")[0]},\n\nWe're currently reviewing portfolios from our applicants — however, we weren't able to open yours.\n\nCould you re-share it via the link below? You can upload a PDF or paste a link to Behance, Dribbble, Notion, or Google Drive.\n\nhttps://careers.jeddawear.com/reupload?id=${a.id}\n\nPlease make sure the link is accessible and set to public if you're sharing via Drive or any cloud platform.\n\n— Jedda`,
+  };
+}
+
+function buildAlignmentTestEmail(a) {
+  const link = `https://careers.jeddawear.com/alignment-test?id=${a.id}`;
+  const firstName = a.full_name.split(" ")[0];
+  return {
+    to: a.email,
+    subject: "Your Next Step with Jedda",
+    body: `Hi ${firstName},\n\nWe apologize for the delayed response, we received hundreds of applications for the design division alone, far more than we expected.\n\nCongratulations! You are one of the few candidates who made it past our initial review.\n\nBefore the final selection, to narrow down our candidates and find the right fit, there's an alignment test you need to complete. This test is to understand how you see things and whether your instincts align with where Jedda is going.\n\nIt will only take around 10 minutes. You can answer in Bahasa Indonesia or English, whichever feels most natural. It won't affect how we evaluate you.\n\nPlease complete this test within 2 days of receiving this email. Once submitted, the test cannot be resubmitted.\n\n${link}\n\nBest regards,\nJedda`,
+  };
+}
+
+function openGmail({ to, subject, body }) {
   window.open(
-    `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=Your%20Jedda%20Application%20%E2%80%94%20Portfolio%20Update%20Request&body=Hi%20${encodeURIComponent(a.full_name.split(" ")[0])}%2C%0A%0AWe%E2%80%99re%20currently%20reviewing%20portfolios%20from%20our%20applicants%20%E2%80%94%20however%2C%20we%20weren%E2%80%99t%20able%20to%20open%20yours.%0A%0ACould%20you%20re-share%20it%20via%20the%20link%20below%3F%20You%20can%20upload%20a%20PDF%20or%20paste%20a%20link%20to%20Behance%2C%20Dribbble%2C%20Notion%2C%20or%20Google%20Drive.%0A%0A${encodeURIComponent("https://careers.jeddawear.com/reupload?id="+a.id)}%0A%0APlease%20make%20sure%20the%20link%20is%20accessible%20and%20set%20to%20public%20if%20you%E2%80%99re%20sharing%20via%20Drive%20or%20any%20cloud%20platform.%0A%0A%E2%80%94%20Jedda`,
+    `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
     "_blank"
   );
 }
 
-function openAlignmentTestEmail(a) {
-  const link = `https://careers.jeddawear.com/alignment-test?id=${a.id}`;
-  const firstName = a.full_name.split(" ")[0];
-  const body = `Hi ${firstName},\n\nWe apologize for the delayed response, we received hundreds of applications for the design division alone, far more than we expected.\n\nCongratulations! You are one of the few candidates who made it past our initial review.\n\nBefore the final selection, to narrow down our candidates and find the right fit, there's an alignment test you need to complete. This test is to understand how you see things and whether your instincts align with where Jedda is going.\n\nIt will only take around 10 minutes. You can answer in Bahasa Indonesia or English, whichever feels most natural. It won't affect how we evaluate you.\n\nPlease complete this test within 2 days of receiving this email. Once submitted, the test cannot be resubmitted.\n\n${link}\n\nBest regards,\nJedda`;
-  window.open(
-    `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=Your%20Next%20Step%20with%20Jedda&body=${encodeURIComponent(body)}`,
-    "_blank"
+// ─── Email Confirmation Modal ───────────────────────────────
+// Generic 2-step: show email preview → "open in gmail" → "mark as sent"
+function EmailConfirmModal({ title, subtitle, preview, onOpen, onMarkSent, onClose, markSentLabel = "mark as sent ✓" }) {
+  const [opened, setOpened] = useState(false);
+  return (
+    <div className="email-confirm-modal" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 480, border: "1px solid #f0f0f0", fontFamily: sans, maxHeight: "90vh", overflowY: "auto" }}>
+        <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>{title}</p>
+        {subtitle && <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 24 }}>{subtitle}</p>}
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
+        <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap", maxHeight: 240, overflowY: "auto" }}>{preview}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            {!opened
+              ? <button onClick={() => { onOpen(); setOpened(true); }}
+                  style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
+                  open in gmail →
+                </button>
+              : <>
+                  <button onClick={() => { onOpen(); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer" }}>
+                    open again
+                  </button>
+                  <button onClick={() => { onMarkSent(); onClose(); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #6a9e76", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#6a9e76", cursor: "pointer" }}>
+                    {markSentLabel}
+                  </button>
+                </>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -238,22 +289,21 @@ function ScoreChip({ score }) {
   return <span style={{ fontSize: 11, fontWeight: 400, padding: "3px 10px", background: bg, color, letterSpacing: 0.3 }}>{score}</span>;
 }
 
-// ─── Request Doc Action ─────────────────────────────────────
-function RequestDocAction({ app, updateStatus, showToast }) {
+// ─── Request Doc Action (now uses EmailConfirmModal pattern) ─
+function RequestDocAction({ app, updateStatus, showToast, onOpenModal }) {
   if (!app.document_requested) {
     return (
-      <ArBtn label="request document" onClick={() => {
-        openRequestDocEmail(app);
-        updateStatus(app.id, "on hold", { document_requested: true });
-        showToast("document requested ✓");
-      }} />
+      <ArBtn label="request document" onClick={() => onOpenModal(app)} />
     );
   }
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
-      <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", whiteSpace: "nowrap" }}>requested ✓</span>
+      {app.document_reuploaded_at
+        ? <span style={{ fontSize: 10, fontWeight: 300, color: "#6a9e76", whiteSpace: "nowrap" }}>re-uploaded ✓</span>
+        : <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", whiteSpace: "nowrap" }}>requested ✓</span>
+      }
       <ArDivider />
-      <ArBtn label="send again" onClick={() => { openRequestDocEmail(app); showToast("email reopened ✓"); }} />
+      <ArBtn label="send again" onClick={() => onOpenModal(app)} />
     </div>
   );
 }
@@ -279,7 +329,7 @@ function ScoreRow({ qKey, label, autoScore, manualScores, setManualScores }) {
   );
 }
 
-// ─── Scoring Sidebar — HARUS di luar EvaluatingDetail ──────
+// ─── Scoring Sidebar ────────────────────────────────────────
 function ScoringSidebar({ autoQ1, autoQ3, manualScores, setManualScores, total, totalColor, saving, saveScores, onPass, onFail }) {
   return (
     <div style={{ position: "sticky", top: 36, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -389,8 +439,6 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
   return (
     <div style={{ padding: "36px 40px", fontFamily: sans, color: "#1a1a1a" }}>
       <button onClick={onBack} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer", marginBottom: 28, padding: 0 }}>← back to evaluating</button>
-
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
         <div>
           <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 4 }}>{app.full_name}</p>
@@ -401,8 +449,6 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
           <p style={{ fontSize: 36, fontWeight: 300, color: totalColor }}>{total != null ? total : "—"}</p>
         </div>
       </div>
-
-      {/* Tabs profile | answers */}
       <div style={{ display: "flex", borderBottom: "1px solid #f0f0f0", marginBottom: 24 }}>
         {["profile", "answers"].map(t => (
           <button key={t} onClick={() => setTab(t)}
@@ -412,7 +458,6 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
         ))}
       </div>
 
-      {/* Tab — Profile */}
       {tab === "profile" ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 268px", gap: 24, alignItems: "start" }}>
           <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
@@ -427,6 +472,7 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
               ["phone", app.phone],
               ["email", app.email],
               ["availability", app.availability],
+              ["applied", fmtDate(app.created_at)],
               ["why jedda", app.why_jedda],
             ].filter(([, v]) => v).map(([label, val]) => (
               <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "11px 0", borderBottom: "1px solid #f5f5f5", gap: 16 }}>
@@ -444,115 +490,95 @@ function EvaluatingDetail({ app, onBack, onPass, onFail, showToast }) {
           <ScoringSidebar autoQ1={autoQ1} autoQ3={autoQ3} manualScores={manualScores} setManualScores={setManualScores} total={total} totalColor={totalColor} saving={saving} saveScores={saveScores} onPass={onPass} onFail={onFail} />
         </div>
       ) : (
-      /* Tab — Answers */
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 268px", gap: 24, alignItems: "start" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-
-          {/* Q1 */}
-          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb" }}>Q1 — visual instinct · 15%</p>
-              <ScoreChip score={autoQ1} />
-            </div>
-            {(() => {
-              const picks = atData.visual_picks
-                ? atData.visual_picks.split(",").map(s => parseInt(s.trim())).filter(Boolean)
-                : [];
-              return (
-                <div>
-                  <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-                    {picks.length > 0 ? picks.map(num => {
-                      const isCorrect = CORRECT_PICKS.includes(num);
-                      return (
-                        <div key={num} style={{ position: "relative", width: 80, flexShrink: 0 }}>
-                          <img src={`/${num}.jpg`} alt={`pick ${num}`}
-                            style={{ width: "100%", aspectRatio: "3/4", objectFit: "cover", objectPosition: "center top", display: "block", border: isCorrect ? "1.5px solid #6a9e76" : "1.5px solid #e8e8e8" }} />
-                          <span style={{ position: "absolute", bottom: 5, left: 6, fontSize: 8, fontWeight: 300, letterSpacing: 1.5, color: "rgba(255,255,255,0.75)" }}>{String(num).padStart(2, "0")}</span>
-                          {isCorrect && (
-                            <div style={{ position: "absolute", top: 5, right: 5, width: 14, height: 14, background: "#6a9e76", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <svg viewBox="0 0 9 7" fill="none" width="8" height="8"><path d="M1 3.5l2.5 2.5L8 1" stroke="white" strokeWidth="1.5"/></svg>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }) : <span style={{ fontSize: 12, fontWeight: 200, color: "#ccc" }}>—</span>}
-                  </div>
-                  <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb" }}>
-                    correct: {CORRECT_PICKS.join(", ")} · {autoQ1 === 100 ? "all 3 correct ✓" : autoQ1 === 75 ? "2 correct" : autoQ1 === 40 ? "1 correct" : "none correct"}
-                  </p>
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* Q2 */}
-          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
-            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q2 — empathy · 15%</p>
-            <p style={{ fontSize: 13, fontWeight: 300, color: "#444", lineHeight: 1.9 }}>{atData.wear_feeling || "—"}</p>
-          </div>
-
-          {/* Q3 */}
-          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb" }}>Q3 — design ranking · 25%</p>
-              <ScoreChip score={autoQ3} />
-            </div>
-            {rankItems.length > 0
-              ? rankItems.map((item, i) => {
-                  const idealPos = IDEAL_RANKING.indexOf(item);
-                  const diff = Math.abs(i - idealPos);
-                  const isTrendRed = item.toLowerCase().includes("on-trend") && i <= 1;
-                  return (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 0", borderBottom: "1px solid #f8f8f8" }}>
-                      <span style={{ fontSize: 9, fontWeight: 200, color: "#ccc", width: 16, flexShrink: 0 }}>{i + 1}</span>
-                      <span style={{ fontSize: 12, fontWeight: 300, color: isTrendRed ? "#c47a5a" : "#444", flex: 1, lineHeight: 1.5 }}>{item}</span>
-                      {diff === 0
-                        ? <span style={{ fontSize: 9, color: "#6a9e76" }}>✓</span>
-                        : <span style={{ fontSize: 9, color: diff >= 3 ? "#c47a5a" : "#ccc" }}>+{diff}</span>
-                      }
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 268px", gap: 24, alignItems: "start" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Q1 */}
+            <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb" }}>Q1 — visual instinct · 15%</p>
+                <ScoreChip score={autoQ1} />
+              </div>
+              {(() => {
+                const picks = atData.visual_picks ? atData.visual_picks.split(",").map(s => parseInt(s.trim())).filter(Boolean) : [];
+                return (
+                  <div>
+                    <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                      {picks.length > 0 ? picks.map(num => {
+                        const isCorrect = CORRECT_PICKS.includes(num);
+                        return (
+                          <div key={num} style={{ position: "relative", width: 80, flexShrink: 0 }}>
+                            <img src={`/${num}.jpg`} alt={`pick ${num}`} style={{ width: "100%", aspectRatio: "3/4", objectFit: "cover", objectPosition: "center top", display: "block", border: isCorrect ? "1.5px solid #6a9e76" : "1.5px solid #e8e8e8" }} />
+                            <span style={{ position: "absolute", bottom: 5, left: 6, fontSize: 8, fontWeight: 300, letterSpacing: 1.5, color: "rgba(255,255,255,0.75)" }}>{String(num).padStart(2, "0")}</span>
+                            {isCorrect && (
+                              <div style={{ position: "absolute", top: 5, right: 5, width: 14, height: 14, background: "#6a9e76", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <svg viewBox="0 0 9 7" fill="none" width="8" height="8"><path d="M1 3.5l2.5 2.5L8 1" stroke="white" strokeWidth="1.5"/></svg>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }) : <span style={{ fontSize: 12, fontWeight: 200, color: "#ccc" }}>—</span>}
                     </div>
-                  );
-                })
-              : <p style={{ fontSize: 12, fontWeight: 200, color: "#ccc" }}>—</p>
-            }
-            {trendPos >= 0 && trendPos <= 1 && (
-              <p style={{ fontSize: 10, fontWeight: 200, color: "#c47a5a", marginTop: 10 }}>⚠ on-trend ranked #{trendPos + 1} — minimum score applied</p>
-            )}
+                    <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb" }}>
+                      correct: {CORRECT_PICKS.join(", ")} · {autoQ1 === 100 ? "all 3 correct ✓" : autoQ1 === 75 ? "2 correct" : autoQ1 === 60 ? "1 correct" : "none correct"}
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+            {/* Q2 */}
+            <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+              <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q2 — empathy · 15%</p>
+              <p style={{ fontSize: 13, fontWeight: 300, color: "#444", lineHeight: 1.9 }}>{atData.wear_feeling || "—"}</p>
+            </div>
+            {/* Q3 */}
+            <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb" }}>Q3 — design ranking · 25%</p>
+                <ScoreChip score={autoQ3} />
+              </div>
+              {rankItems.length > 0
+                ? rankItems.map((item, i) => {
+                    const idealPos = IDEAL_RANKING.indexOf(item);
+                    const diff = Math.abs(i - idealPos);
+                    const isTrendRed = item.toLowerCase().includes("on-trend") && i <= 1;
+                    return (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 0", borderBottom: "1px solid #f8f8f8" }}>
+                        <span style={{ fontSize: 9, fontWeight: 200, color: "#ccc", width: 16, flexShrink: 0 }}>{i + 1}</span>
+                        <span style={{ fontSize: 12, fontWeight: 300, color: isTrendRed ? "#c47a5a" : "#444", flex: 1, lineHeight: 1.5 }}>{item}</span>
+                        {diff === 0 ? <span style={{ fontSize: 9, color: "#6a9e76" }}>✓</span> : <span style={{ fontSize: 9, color: diff >= 3 ? "#c47a5a" : "#ccc" }}>+{diff}</span>}
+                      </div>
+                    );
+                  })
+                : <p style={{ fontSize: 12, fontWeight: 200, color: "#ccc" }}>—</p>
+              }
+              {trendPos >= 0 && trendPos <= 1 && <p style={{ fontSize: 10, fontWeight: 200, color: "#c47a5a", marginTop: 10 }}>⚠ on-trend ranked #{trendPos + 1} — minimum score applied</p>}
+            </div>
+            {/* Q4 */}
+            <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+              <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q4 — local brands · 5.5%</p>
+              <p style={{ fontSize: 13, fontWeight: 300, color: "#444" }}>{atData.local_brands || "—"}</p>
+            </div>
+            {/* Q5 */}
+            <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+              <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q5 — international brands · 9.5%</p>
+              <p style={{ fontSize: 13, fontWeight: 300, color: "#444" }}>{atData.intl_brands || "—"}</p>
+            </div>
+            {/* Q6 */}
+            <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+              <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q6 — dimension · 10%</p>
+              <p style={{ fontSize: 13, fontWeight: 300, color: "#444", lineHeight: 1.9 }}>{atData.dimension || "—"}</p>
+            </div>
+            {/* Q7 */}
+            <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
+              <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q7 — moodboard · 20%</p>
+              {(atData.moodboard_url || atData.moodboard_link)
+                ? <a href={atData.moodboard_url || atData.moodboard_link} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a", textDecoration: "none", borderBottom: "1px solid #ddd", paddingBottom: 2 }}>open moodboard →</a>
+                : <p style={{ fontSize: 12, fontWeight: 200, color: "#ccc" }}>—</p>
+              }
+            </div>
           </div>
-
-          {/* Q4 */}
-          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
-            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q4 — local brands · 5.5%</p>
-            <p style={{ fontSize: 13, fontWeight: 300, color: "#444" }}>{atData.local_brands || "—"}</p>
-          </div>
-
-          {/* Q5 */}
-          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
-            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q5 — international brands · 9.5%</p>
-            <p style={{ fontSize: 13, fontWeight: 300, color: "#444" }}>{atData.intl_brands || "—"}</p>
-          </div>
-
-          {/* Q6 */}
-          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
-            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q6 — dimension · 10%</p>
-            <p style={{ fontSize: 13, fontWeight: 300, color: "#444", lineHeight: 1.9 }}>{atData.dimension || "—"}</p>
-          </div>
-
-          {/* Q7 */}
-          <div style={{ background: "#fff", border: "1px solid #f0f0f0", padding: "18px 22px" }}>
-            <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Q7 — moodboard · 20%</p>
-            {(atData.moodboard_url || atData.moodboard_link)
-              ? <a href={atData.moodboard_url || atData.moodboard_link} target="_blank" rel="noreferrer"
-                  style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a", textDecoration: "none", borderBottom: "1px solid #ddd", paddingBottom: 2 }}>
-                  open moodboard →
-                </a>
-              : <p style={{ fontSize: 12, fontWeight: 200, color: "#ccc" }}>—</p>
-            }
-          </div>
-
+          <ScoringSidebar autoQ1={autoQ1} autoQ3={autoQ3} manualScores={manualScores} setManualScores={setManualScores} total={total} totalColor={totalColor} saving={saving} saveScores={saveScores} onPass={onPass} onFail={onFail} />
         </div>
-        <ScoringSidebar autoQ1={autoQ1} autoQ3={autoQ3} manualScores={manualScores} setManualScores={setManualScores} total={total} totalColor={totalColor} saving={saving} saveScores={saveScores} onPass={onPass} onFail={onFail} />
-      </div>
       )}
     </div>
   );
@@ -573,6 +599,7 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
     ["city", app.city],
     ["open to bandung", app.bandung],
     ["availability", app.availability],
+    ["applied", fmtDate(app.created_at)],
     ["why jedda", app.why_jedda],
   ].filter(([, v]) => v);
 
@@ -596,6 +623,14 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
         <button onClick={onClose} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 9, fontWeight: 300, color: "#ccc", cursor: "pointer", letterSpacing: 2, marginBottom: 28, display: "block", textTransform: "uppercase" }}>← back</button>
         <p style={{ fontSize: 19, fontWeight: 300, marginBottom: 8 }}>{app.full_name}</p>
         <span style={{ fontSize: 9, fontWeight: 300, padding: "3px 8px", background: tag.bg, color: tag.color }}>{tag.label}</span>
+
+        {/* Document re-uploaded badge */}
+        {app.document_reuploaded_at && (
+          <div style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 6, background: "#edf5ef", padding: "4px 10px" }}>
+            <span style={{ fontSize: 9, fontWeight: 300, color: "#6a9e76", letterSpacing: 1 }}>document re-uploaded · {fmtDate(app.document_reuploaded_at)}</span>
+          </div>
+        )}
+
         <div style={{ width: 20, height: 1, background: "#eee", margin: "20px 0" }} />
         <div style={{ borderTop: "1px solid #f0f0f0" }}>
           {fields.map(([l, v]) => (
@@ -662,45 +697,12 @@ function buildInterviewEmail(app, division, dt) {
   const d = dt ? new Date(dt) : null;
   const dateStr = d ? d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "[date]";
   const timeStr = d ? d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "[time]";
-
   if (division === "design") {
-    return `Hi ${firstName},
-
-After reviewing your alignment test, we think there's something worth exploring further. We'd like to invite you for an online interview:
-
-${dateStr} at ${timeStr}
-
-Does this work for you? If not, let us know and we'll find another slot. We'll send the details once confirmed.
-
-Jedda.`;
+    return `Hi ${firstName},\n\nAfter reviewing your alignment test, we think there's something worth exploring further. We'd like to invite you for an online interview:\n\n${dateStr} at ${timeStr}\n\nDoes this work for you? If not, let us know and we'll find another slot. We'll send the details once confirmed.\n\nJedda.`;
   } else if (division === "creative") {
-    return `Hi ${firstName},
-
-We apologize for the delayed response — we received far more applications than expected, and we wanted to make sure we reviewed each one properly.
-
-We'd like to invite you for an online interview:
-
-${dateStr} at ${timeStr}
-
-Does this work for you? If not, let us know and we'll find another slot. We'll send the details once confirmed.
-
-Jedda.`;
+    return `Hi ${firstName},\n\nWe apologize for the delayed response — we received far more applications than expected, and we wanted to make sure we reviewed each one properly.\n\nWe'd like to invite you for an online interview:\n\n${dateStr} at ${timeStr}\n\nDoes this work for you? If not, let us know and we'll find another slot. We'll send the details once confirmed.\n\nJedda.`;
   } else {
-    return `Hi ${firstName},
-
-Congratulations — you've made it to the interview stage.
-
-We received hundreds of applications, and we're glad yours stood out. Before we finalize the team, we'd like to meet you in person — just a casual conversation to get a better sense of who you are and how you'd fit into the Jedda environment.
-
-Interview details:
-When: ${dateStr} at ${timeStr}
-Where: ${OFFLINE_LOCATION}
-Get directions: ${OFFLINE_MAPS_URL}
-
-Please reply to confirm whether this time works for you. If it doesn't, let us know and we'll find another slot.
-
-See you there,
-Jedda.`;
+    return `Hi ${firstName},\n\nCongratulations — you've made it to the interview stage.\n\nWe received hundreds of applications, and we're glad yours stood out. Before we finalize the team, we'd like to meet you in person — just a casual conversation to get a better sense of who you are and how you'd fit into the Jedda environment.\n\nInterview details:\nWhen: ${dateStr} at ${timeStr}\nWhere: ${OFFLINE_LOCATION}\nGet directions: ${OFFLINE_MAPS_URL}\n\nPlease reply to confirm whether this time works for you. If it doesn't, let us know and we'll find another slot.\n\nSee you there,\nJedda.`;
   }
 }
 
@@ -709,76 +711,66 @@ function InterviewModal({ app, onClose, onConfirm }) {
   const defaultDiv = ["design", "creative", "retail"].includes(detectedDiv) ? detectedDiv : "retail";
   const [division, setDivision] = useState(defaultDiv);
   const [dt, setDt] = useState("");
+  const [opened, setOpened] = useState(false);
   if (!app) return null;
-
-  const preview = dt
-    ? buildInterviewEmail(app, division, dt)
-    : "select a date & time first.";
-
+  const preview = dt ? buildInterviewEmail(app, division, dt) : "select a date & time first.";
+  const subject = division === "retail" ? `${app.full_name.split(" ")[0]}, we'd like to meet you.` : `We'd like to talk — Jedda`;
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.12)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 480, border: "1px solid #f0f0f0", fontFamily: sans, maxHeight: "90vh", overflowY: "auto" }}>
         <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>schedule interview</p>
         <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 24 }}>{app.full_name} — {app.position?.toLowerCase()}</p>
-
-        {/* Division toggle */}
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>division</p>
         <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
           {["design", "creative", "retail"].map((d, i) => (
-            <button key={d} onClick={() => setDivision(d)}
-              style={{
-                flex: 1, padding: "9px 0", border: "none",
-                borderRight: i < 2 ? "1px solid #f0f0f0" : "none",
-                background: division === d ? "#1a1a1a" : "#fff",
-                color: division === d ? "#fff" : "#bbb",
-                fontFamily: sans, fontSize: 11, fontWeight: 300, cursor: "pointer",
-                transition: "all 0.15s", letterSpacing: 0.5
-              }}>
+            <button key={d} onClick={() => { setDivision(d); setOpened(false); }}
+              style={{ flex: 1, padding: "9px 0", border: "none", borderRight: i < 2 ? "1px solid #f0f0f0" : "none", background: division === d ? "#1a1a1a" : "#fff", color: division === d ? "#fff" : "#bbb", fontFamily: sans, fontSize: 11, fontWeight: 300, cursor: "pointer", transition: "all 0.15s", letterSpacing: 0.5 }}>
               {d}
             </button>
           ))}
         </div>
-
-        {/* Retail location info */}
         {division === "retail" && (
           <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "12px 14px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 4 }}>location</p>
               <p style={{ fontSize: 11, fontWeight: 300, color: "#555" }}>Fragment Project, Jl. Ir. H. Juanda No.23</p>
             </div>
-            <a href={OFFLINE_MAPS_URL} target="_blank" rel="noreferrer"
-              style={{ fontSize: 10, fontWeight: 300, color: "#999", textDecoration: "none", borderBottom: "1px solid #ddd", paddingBottom: 1, whiteSpace: "nowrap", marginLeft: 12 }}>
-              maps →
-            </a>
+            <a href={OFFLINE_MAPS_URL} target="_blank" rel="noreferrer" style={{ fontSize: 10, fontWeight: 300, color: "#999", textDecoration: "none", borderBottom: "1px solid #ddd", paddingBottom: 1, whiteSpace: "nowrap", marginLeft: 12 }}>maps →</a>
           </div>
         )}
-
-        {/* Date & time */}
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>date & time</p>
-        <input type="datetime-local" value={dt} onChange={e => setDt(e.target.value)}
+        <input type="datetime-local" value={dt} onChange={e => { setDt(e.target.value); setOpened(false); }}
           style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 22 }} />
-
-        {/* Email preview */}
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
         <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, minHeight: 80, whiteSpace: "pre-wrap" }}>{preview}</div>
-
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
-          <button onClick={() => { if (!dt) return; onConfirm(dt, division); }} style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer", opacity: dt ? 1 : 0.3 }}>send email →</button>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            {!opened
+              ? <button onClick={() => { if (!dt) return; openGmail({ to: app.email, subject, body: preview }); setOpened(true); }}
+                  style={{ background: "none", border: "none", borderBottom: `1px solid ${dt ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: dt ? "#1a1a1a" : "#bbb", cursor: dt ? "pointer" : "default", opacity: dt ? 1 : 0.4 }}>
+                  open in gmail →
+                </button>
+              : <>
+                  <button onClick={() => { openGmail({ to: app.email, subject, body: preview }); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer" }}>open again</button>
+                  <button onClick={() => { onConfirm(dt, division); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #6a9e76", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#6a9e76", cursor: "pointer" }}>mark as sent ✓</button>
+                </>
+            }
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-
-// ─── Offer Modal ────────────────────────────────────────────
+// ─── formatIDR ─────────────────────────────────────────────
 function formatIDR(raw) {
   const num = raw.replace(/[^0-9]/g, "");
   if (!num) return "";
   return parseInt(num, 10).toLocaleString("id-ID");
 }
-
 
 // ─── Resend Interview Modal ─────────────────────────────────
 function ResendInterviewModal({ app, onClose, onSend }) {
@@ -786,8 +778,10 @@ function ResendInterviewModal({ app, onClose, onSend }) {
   const defaultDiv = ["design", "creative", "retail"].includes(detectedDiv) ? detectedDiv : "retail";
   const [division, setDivision] = useState(defaultDiv);
   const [dt, setDt] = useState(app?.interview_date ? app.interview_date.slice(0, 16) : "");
+  const [opened, setOpened] = useState(false);
   if (!app) return null;
   const preview = dt ? buildInterviewEmail(app, division, dt) : "select a date & time first.";
+  const subject = division === "retail" ? `${app.full_name.split(" ")[0]}, we'd like to meet you.` : `We'd like to talk — Jedda`;
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.12)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 480, border: "1px solid #f0f0f0", fontFamily: sans, maxHeight: "90vh", overflowY: "auto" }}>
@@ -796,7 +790,7 @@ function ResendInterviewModal({ app, onClose, onSend }) {
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>division</p>
         <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
           {["design", "creative", "retail"].map((d, i) => (
-            <button key={d} onClick={() => setDivision(d)}
+            <button key={d} onClick={() => { setDivision(d); setOpened(false); }}
               style={{ flex: 1, padding: "9px 0", border: "none", borderRight: i < 2 ? "1px solid #f0f0f0" : "none", background: division === d ? "#1a1a1a" : "#fff", color: division === d ? "#fff" : "#bbb", fontFamily: sans, fontSize: 11, fontWeight: 300, cursor: "pointer", transition: "all 0.15s", letterSpacing: 0.5 }}>
               {d}
             </button>
@@ -809,16 +803,26 @@ function ResendInterviewModal({ app, onClose, onSend }) {
           </div>
         )}
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>date & time</p>
-        <input type="datetime-local" value={dt} onChange={e => setDt(e.target.value)}
+        <input type="datetime-local" value={dt} onChange={e => { setDt(e.target.value); setOpened(false); }}
           style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 24 }} />
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
         <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{preview}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
-          <button onClick={() => { if (dt) onSend(division, dt); }}
-            style={{ background: "none", border: "none", borderBottom: `1px solid ${dt ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: dt ? "#1a1a1a" : "#bbb", cursor: dt ? "pointer" : "default" }}>
-            open email →
-          </button>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            {!opened
+              ? <button onClick={() => { if (!dt) return; openGmail({ to: app.email, subject, body: preview }); setOpened(true); }}
+                  style={{ background: "none", border: "none", borderBottom: `1px solid ${dt ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: dt ? "#1a1a1a" : "#bbb", cursor: dt ? "pointer" : "default", opacity: dt ? 1 : 0.4 }}>
+                  open in gmail →
+                </button>
+              : <>
+                  <button onClick={() => { openGmail({ to: app.email, subject, body: preview }); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer" }}>open again</button>
+                  <button onClick={() => { onSend(division, dt); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #6a9e76", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#6a9e76", cursor: "pointer" }}>mark as sent ✓</button>
+                </>
+            }
+          </div>
         </div>
       </div>
     </div>
@@ -834,13 +838,14 @@ function ResendOfferModal({ app, onClose, onSend }) {
   const [ftSalaryMax, setFtSalaryMax] = useState(parsedSalary.includes("–") ? parsedSalary.split("–")[1].trim() : "");
   const [ftSalaryProbation, setFtSalaryProbation] = useState(app?.offer_salary_probation || "");
   const [startDate, setStartDate] = useState("");
+  const [opened, setOpened] = useState(false);
   if (!app) return null;
   const ftSalary = ftSalaryMin ? (ftSalaryMax ? `${ftSalaryMin} – ${ftSalaryMax}` : ftSalaryMin) : "";
   const link = `https://careers.jeddawear.com/offer?id=${app.id}`;
   const firstName = app.full_name.split(" ")[0];
   const showPT = sendMode === "pt" || sendMode === "both";
   const showFT = sendMode === "ft" || sendMode === "both";
-  const canSend = startDate && (!showPT || ptSalary) && (!showFT || (ftSalaryMin && ftSalaryProbation));
+  const canOpen = startDate && (!showPT || ptSalary) && (!showFT || (ftSalaryMin && ftSalaryProbation));
   const buildEmail = () => {
     let typeNote = "";
     if (sendMode === "both") typeNote = "We'd like to offer you a position at Jedda, and we're open to either a full-time or part-time arrangement — whichever works best for you. The offer details for both options are outlined in the link below.";
@@ -856,32 +861,32 @@ function ResendOfferModal({ app, onClose, onSend }) {
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>offer type</p>
         <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
           {[["pt","part-time only"],["ft","full-time only"],["both","both options"]].map(([val, lbl], i) => (
-            <button key={val} onClick={() => setSendMode(val)}
+            <button key={val} onClick={() => { setSendMode(val); setOpened(false); }}
               style={{ flex: 1, padding: "9px 0", border: "none", borderRight: i < 2 ? "1px solid #f0f0f0" : "none", background: sendMode === val ? "#1a1a1a" : "#fff", color: sendMode === val ? "#fff" : "#bbb", fontFamily: sans, fontSize: 10, fontWeight: 300, cursor: "pointer", transition: "all 0.15s", letterSpacing: 0.3 }}>
               {lbl}
             </button>
           ))}
         </div>
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>start date</p>
-        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+        <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setOpened(false); }}
           style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 24 }} />
         {showPT && (<>
           {sendMode === "both" && <p style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, textTransform: "uppercase", color: "#1a1a1a", marginBottom: 12 }}>part-time</p>}
           <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary (IDR / month)</p>
-          <input type="text" placeholder="e.g. 2,500,000" value={ptSalary} onChange={e => setPtSalary(formatIDR(e.target.value))}
+          <input type="text" placeholder="e.g. 2,500,000" value={ptSalary} onChange={e => { setPtSalary(formatIDR(e.target.value)); setOpened(false); }}
             style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 24 }} />
         </>)}
         {showFT && (<>
           {sendMode === "both" && <p style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, textTransform: "uppercase", color: "#1a1a1a", marginBottom: 12 }}>full-time</p>}
           <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary during probation (IDR / month)</p>
-          <input type="text" placeholder="e.g. 3,500,000" value={ftSalaryProbation} onChange={e => setFtSalaryProbation(formatIDR(e.target.value))}
+          <input type="text" placeholder="e.g. 3,500,000" value={ftSalaryProbation} onChange={e => { setFtSalaryProbation(formatIDR(e.target.value)); setOpened(false); }}
             style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 16 }} />
           <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary after probation (IDR / month)</p>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-            <input type="text" placeholder="min" value={ftSalaryMin} onChange={e => setFtSalaryMin(formatIDR(e.target.value))}
+            <input type="text" placeholder="min" value={ftSalaryMin} onChange={e => { setFtSalaryMin(formatIDR(e.target.value)); setOpened(false); }}
               style={{ flex: 1, border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent" }} />
             <span style={{ fontSize: 12, color: "#ccc", flexShrink: 0 }}>–</span>
-            <input type="text" placeholder="max (optional)" value={ftSalaryMax} onChange={e => setFtSalaryMax(formatIDR(e.target.value))}
+            <input type="text" placeholder="max (optional)" value={ftSalaryMax} onChange={e => { setFtSalaryMax(formatIDR(e.target.value)); setOpened(false); }}
               style={{ flex: 1, border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent" }} />
           </div>
         </>)}
@@ -889,10 +894,23 @@ function ResendOfferModal({ app, onClose, onSend }) {
         <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{buildEmail()}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
-          <button onClick={() => { if (!canSend) return; onSend(buildEmail(), sendMode === "pt" ? "Part-time" : sendMode === "ft" ? "Full-time" : "Full-time / Part-time", ptSalary, ftSalary, ftSalaryProbation, startDate); }}
-            style={{ background: "none", border: "none", borderBottom: `1px solid ${canSend ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: canSend ? "#1a1a1a" : "#bbb", cursor: canSend ? "pointer" : "default" }}>
-            resend offer →
-          </button>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            {!opened
+              ? <button onClick={() => { if (!canOpen) return; openGmail({ to: app.email, subject: "Congratulations — Jedda", body: buildEmail() }); setOpened(true); }}
+                  style={{ background: "none", border: "none", borderBottom: `1px solid ${canOpen ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: canOpen ? "#1a1a1a" : "#bbb", cursor: canOpen ? "pointer" : "default" }}>
+                  open in gmail →
+                </button>
+              : <>
+                  <button onClick={() => { openGmail({ to: app.email, subject: "Congratulations — Jedda", body: buildEmail() }); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer" }}>open again</button>
+                  <button onClick={() => {
+                    const formattedDate = startDate ? new Date(startDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "";
+                    onSend(buildEmail(), sendMode === "pt" ? "Part-time" : sendMode === "ft" ? "Full-time" : "Full-time / Part-time", ptSalary, ftSalary, ftSalaryProbation, formattedDate);
+                  }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #6a9e76", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#6a9e76", cursor: "pointer" }}>mark as sent ✓</button>
+                </>
+            }
+          </div>
         </div>
       </div>
     </div>
@@ -900,87 +918,82 @@ function ResendOfferModal({ app, onClose, onSend }) {
 }
 
 function OfferModal({ app, onClose, onConfirm }) {
-  const [sendMode, setSendMode] = useState("both"); // "pt" | "ft" | "both"
+  const [sendMode, setSendMode] = useState("both");
   const [ptSalary, setPtSalary] = useState("");
   const [ftSalaryMin, setFtSalaryMin] = useState("");
   const [ftSalaryMax, setFtSalaryMax] = useState("");
   const [ftSalaryProbation, setFtSalaryProbation] = useState("");
   const [startDate, setStartDate] = useState("");
+  const [opened, setOpened] = useState(false);
   if (!app) return null;
   const ftSalary = ftSalaryMin ? (ftSalaryMax ? `${ftSalaryMin} – ${ftSalaryMax}` : ftSalaryMin) : "";
   const link = `https://careers.jeddawear.com/offer?id=${app.id}`;
   const firstName = app.full_name.split(" ")[0];
   const showPT = sendMode === "pt" || sendMode === "both";
   const showFT = sendMode === "ft" || sendMode === "both";
-  const canSend = startDate && (!showPT || ptSalary) && (!showFT || (ftSalaryMin && ftSalaryProbation));
-
+  const canOpen = startDate && (!showPT || ptSalary) && (!showFT || (ftSalaryMin && ftSalaryProbation));
   const buildEmail = () => {
     let typeNote = "";
-    if (sendMode === "both") {
-      typeNote = "We'd like to offer you a position at Jedda, and we're open to either a full-time or part-time arrangement — whichever works best for you. The offer details for both options are outlined in the link below.";
-    } else if (sendMode === "ft") {
-      typeNote = "We're extending this offer as a full-time position — though if you'd like to discuss a part-time arrangement instead, we're open to that conversation.";
-    } else {
-      typeNote = "We're extending this offer as a part-time position — though if you'd like to discuss a full-time arrangement instead, we're open to that conversation.";
-    }
+    if (sendMode === "both") typeNote = "We'd like to offer you a position at Jedda, and we're open to either a full-time or part-time arrangement — whichever works best for you. The offer details for both options are outlined in the link below.";
+    else if (sendMode === "ft") typeNote = "We're extending this offer as a full-time position — though if you'd like to discuss a part-time arrangement instead, we're open to that conversation.";
+    else typeNote = "We're extending this offer as a part-time position — though if you'd like to discuss a full-time arrangement instead, we're open to that conversation.";
     return `Hi ${firstName},\n\nCongratulations — we'd love to have you on the Jedda team.\n\n${typeNote}\n\nPlease review the full offer details via the link below. Everything is outlined there, and you can sign digitally to confirm your acceptance:\n\n${link}\n\nThe offer will remain open for 7 days. Feel free to reach out if you have any questions.\n\nJedda.`;
   };
-
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.12)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 500, border: "1px solid #f0f0f0", fontFamily: sans, maxHeight: "90vh", overflowY: "auto" }}>
         <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>send job offer</p>
         <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 28 }}>{app.full_name} — {app.position?.toLowerCase()}</p>
-
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>offer type</p>
         <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
           {[["pt","part-time only"],["ft","full-time only"],["both","both options"]].map(([val, lbl], i) => (
-            <button key={val} onClick={() => setSendMode(val)}
+            <button key={val} onClick={() => { setSendMode(val); setOpened(false); }}
               style={{ flex: 1, padding: "9px 0", border: "none", borderRight: i < 2 ? "1px solid #f0f0f0" : "none", background: sendMode === val ? "#1a1a1a" : "#fff", color: sendMode === val ? "#fff" : "#bbb", fontFamily: sans, fontSize: 10, fontWeight: 300, cursor: "pointer", transition: "all 0.15s", letterSpacing: 0.3 }}>
               {lbl}
             </button>
           ))}
         </div>
-
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>start date</p>
-        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+        <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setOpened(false); }}
           style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 24 }} />
-
         {showPT && (<>
           {sendMode === "both" && <p style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, textTransform: "uppercase", color: "#1a1a1a", marginBottom: 12 }}>part-time</p>}
           <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary (IDR / month)</p>
-          <input type="text" placeholder="e.g. 2,500,000" value={ptSalary}
-            onChange={e => setPtSalary(formatIDR(e.target.value))}
+          <input type="text" placeholder="e.g. 2,500,000" value={ptSalary} onChange={e => { setPtSalary(formatIDR(e.target.value)); setOpened(false); }}
             style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 24 }} />
         </>)}
-
         {showFT && (<>
           {sendMode === "both" && <p style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, textTransform: "uppercase", color: "#1a1a1a", marginBottom: 12 }}>full-time</p>}
           <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary during probation (IDR / month)</p>
-          <input type="text" placeholder="e.g. 3,500,000" value={ftSalaryProbation}
-            onChange={e => setFtSalaryProbation(formatIDR(e.target.value))}
+          <input type="text" placeholder="e.g. 3,500,000" value={ftSalaryProbation} onChange={e => { setFtSalaryProbation(formatIDR(e.target.value)); setOpened(false); }}
             style={{ width: "100%", border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent", marginBottom: 16 }} />
           <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>salary after probation (IDR / month)</p>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-            <input type="text" placeholder="min" value={ftSalaryMin} onChange={e => setFtSalaryMin(formatIDR(e.target.value))}
+            <input type="text" placeholder="min" value={ftSalaryMin} onChange={e => { setFtSalaryMin(formatIDR(e.target.value)); setOpened(false); }}
               style={{ flex: 1, border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent" }} />
             <span style={{ fontSize: 12, color: "#ccc", flexShrink: 0 }}>–</span>
-            <input type="text" placeholder="max (optional)" value={ftSalaryMax} onChange={e => setFtSalaryMax(formatIDR(e.target.value))}
+            <input type="text" placeholder="max (optional)" value={ftSalaryMax} onChange={e => { setFtSalaryMax(formatIDR(e.target.value)); setOpened(false); }}
               style={{ flex: 1, border: "none", borderBottom: "1px solid #e8e8e8", padding: "8px 0", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", outline: "none", background: "transparent" }} />
           </div>
         </>)}
-
         <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
-        <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
-          {buildEmail()}
-        </div>
-
+        <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{buildEmail()}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
-          <button onClick={() => { if (!canSend) return; onConfirm({ sendMode, ptSalary, ftSalary, ftSalaryProbation, startDate, emailBody: buildEmail() }); }}
-            style={{ background: "none", border: "none", borderBottom: `1px solid ${canSend ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: canSend ? "#1a1a1a" : "#bbb", cursor: canSend ? "pointer" : "default" }}>
-            send offer →
-          </button>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            {!opened
+              ? <button onClick={() => { if (!canOpen) return; openGmail({ to: app.email, subject: "Congratulations — Jedda", body: buildEmail() }); setOpened(true); }}
+                  style={{ background: "none", border: "none", borderBottom: `1px solid ${canOpen ? "#1a1a1a" : "#ddd"}`, paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: canOpen ? "#1a1a1a" : "#bbb", cursor: canOpen ? "pointer" : "default" }}>
+                  open in gmail →
+                </button>
+              : <>
+                  <button onClick={() => { openGmail({ to: app.email, subject: "Congratulations — Jedda", body: buildEmail() }); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer" }}>open again</button>
+                  <button onClick={() => onConfirm({ sendMode, ptSalary, ftSalary, ftSalaryProbation, startDate, emailBody: buildEmail() })}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #6a9e76", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#6a9e76", cursor: "pointer" }}>mark as sent ✓</button>
+                </>
+            }
+          </div>
         </div>
       </div>
     </div>
@@ -989,6 +1002,7 @@ function OfferModal({ app, onClose, onConfirm }) {
 
 // ─── Acceptance Modal ───────────────────────────────────────
 function AcceptanceModal({ app, onClose, onConfirm }) {
+  const [opened, setOpened] = useState(false);
   if (!app) return null;
   const preview = `Hi ${app.full_name.split(" ")[0]},\n\nWelcome to Jedda.\n\nYou're officially part of the team as ${app.position?.toLowerCase()}. We're glad to have you with us — onboarding details will follow shortly.\n\n— Jedda Team`;
   return (
@@ -1000,7 +1014,55 @@ function AcceptanceModal({ app, onClose, onConfirm }) {
         <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{preview}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
-          <button onClick={onConfirm} style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>send email →</button>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            {!opened
+              ? <button onClick={() => { openGmail({ to: app.email, subject: "Welcome to Jedda", body: preview }); setOpened(true); }}
+                  style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
+                  open in gmail →
+                </button>
+              : <>
+                  <button onClick={() => { openGmail({ to: app.email, subject: "Welcome to Jedda", body: preview }); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer" }}>open again</button>
+                  <button onClick={() => { onConfirm(); onClose(); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #6a9e76", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#6a9e76", cursor: "pointer" }}>mark as sent ✓</button>
+                </>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Rejection Email Modal ──────────────────────────────────
+function RejectionModal({ app, onClose, onMarkSent }) {
+  const [opened, setOpened] = useState(false);
+  if (!app) return null;
+  const firstName = app.full_name.split(" ")[0];
+  const preview = `Hi ${firstName},\n\nThank you for taking the time to apply and for your interest in being part of Jedda.\n\nAfter reviewing your application, we've decided to move forward with other candidates at this time. This was a difficult decision — we received a strong pool of applicants, and we're grateful you considered us.\n\nWe encourage you to apply again in the future if you feel the timing is right.\n\nWishing you the best,\nJedda.`;
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.12)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", padding: "36px 32px", width: 460, border: "1px solid #f0f0f0", fontFamily: sans }}>
+        <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>send rejection email</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 24 }}>{app.full_name} — {app.position?.toLowerCase()}</p>
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 8 }}>email preview</p>
+        <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "16px 18px", marginBottom: 24, fontSize: 11, fontWeight: 300, color: "#777", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{preview}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            {!opened
+              ? <button onClick={() => { openGmail({ to: app.email, subject: "Your Jedda Application", body: preview }); setOpened(true); }}
+                  style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer" }}>
+                  open in gmail →
+                </button>
+              : <>
+                  <button onClick={() => { openGmail({ to: app.email, subject: "Your Jedda Application", body: preview }); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#aaa", cursor: "pointer" }}>open again</button>
+                  <button onClick={() => { onMarkSent(); onClose(); }}
+                    style={{ background: "none", border: "none", borderBottom: "1px solid #6a9e76", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#6a9e76", cursor: "pointer" }}>mark as sent ✓</button>
+                </>
+            }
+          </div>
         </div>
       </div>
     </div>
@@ -1008,7 +1070,7 @@ function AcceptanceModal({ app, onClose, onConfirm }) {
 }
 
 // ─── Page components ────────────────────────────────────────
-function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
+function OnHoldPage({ apps, updateStatus, showToast, setPanelApp, onRequestDocModal }) {
   const [div, setDiv] = useState("all");
   const all = apps.filter(a => a.status === "on hold");
   const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
@@ -1033,11 +1095,11 @@ function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
               <DocLink url={a.portfolio_url || a.portfolio_link} />
               <div style={{ paddingLeft: 24 }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: "flex", alignItems: "center" }}>
-                  <RequestDocAction app={a} updateStatus={updateStatus} showToast={showToast} />
+                  <RequestDocAction app={a} updateStatus={updateStatus} showToast={showToast} onOpenModal={onRequestDocModal} />
                   <ArDivider />
                   <ArBtn label="shortlisted" cls="primary" onClick={() => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); }} />
                   <ArDivider />
-                  <ArBtn label="reject" cls="danger" onClick={() => { if (window.confirm(`Reject ${a.full_name}? This will move them to rejected.`)) { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } }} />
+                  <ArBtn label="reject" cls="danger" onClick={() => { if (window.confirm(`Reject ${a.full_name}?`)) { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } }} />
                 </div>
               </div>
             </TRow>
@@ -1048,7 +1110,7 @@ function OnHoldPage({ apps, updateStatus, showToast, setPanelApp }) {
   );
 }
 
-function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
+function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp, onAlignmentModal }) {
   const [div, setDiv] = useState("all");
   const all = apps.filter(a => a.status === "shortlisted");
   const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
@@ -1076,13 +1138,9 @@ function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
                     ? <div style={{ display: "flex", alignItems: "center" }}>
                         <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", whiteSpace: "nowrap" }}>sent ✓</span>
                         <ArDivider />
-                        <ArBtn label="resend" onClick={() => { openAlignmentTestEmail(a); showToast("email reopened ✓"); }} />
+                        <ArBtn label="resend" onClick={() => onAlignmentModal(a, true)} />
                       </div>
-                    : <ArBtn label="send alignment test" onClick={() => {
-                        openAlignmentTestEmail(a);
-                        updateStatus(a.id, "evaluating", { alignment_test_sent: true });
-                        showToast("alignment test sent ✓");
-                      }} />
+                    : <ArBtn label="send alignment test" onClick={() => onAlignmentModal(a, false)} />
                 }
               </div>
             </TRow>
@@ -1093,7 +1151,7 @@ function ShortlistedPage({ apps, updateStatus, showToast, setPanelApp }) {
   );
 }
 
-function EvaluatingPage({ apps, setEvaluatingApp, showToast }) {
+function EvaluatingPage({ apps, setEvaluatingApp, showToast, onAlignmentModal }) {
   const [div, setDiv] = useState("all");
   const all = apps.filter(a => a.status === "evaluating");
   const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
@@ -1119,9 +1177,10 @@ function EvaluatingPage({ apps, setEvaluatingApp, showToast }) {
                 {a.alignment_test_submitted
                   ? <span style={{ fontSize: 10, fontWeight: 300, color: "#6a9e76" }}>submitted ✓</span>
                   : <div style={{ display: "flex", alignItems: "center" }}>
-                      <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", whiteSpace: "nowrap" }}>awaiting...</span>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#e8c86a", marginRight: 8, flexShrink: 0 }} />
+                      <span style={{ fontSize: 10, fontWeight: 200, color: "#999", whiteSpace: "nowrap" }}>awaiting submission</span>
                       <ArDivider />
-                      <ArBtn label="resend" onClick={() => { openAlignmentTestEmail(a); showToast("email reopened ✓"); }} />
+                      <ArBtn label="resend" onClick={() => onAlignmentModal(a, true)} />
                     </div>
                 }
               </div>
@@ -1194,9 +1253,6 @@ function InterviewPage({ apps, updateStatus, showToast, setResendInterviewApp })
           filtered.map(a => {
             const d = a.interview_date ? new Date(a.interview_date) : null;
             const dateLabel = d ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—";
-            const resendEmail = () => {
-              setResendInterviewApp(a);
-            };
             return (
               <TRow key={a.id} cols="1fr 1fr 80px 140px 1fr">
                 <TName name={a.full_name} sub={a.city} />
@@ -1206,8 +1262,8 @@ function InterviewPage({ apps, updateStatus, showToast, setResendInterviewApp })
                 <div onClick={e => e.stopPropagation()}>
                   <ActionRow actions={[
                     { label: "passed →", cls: "primary", onClick: () => { updateStatus(a.id, "the final team", { acceptance_sent: false }); showToast("→ the final team"); } },
-                    { label: "did not pass", cls: "danger", onClick: () => { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } },
-                    { label: "resend email", onClick: resendEmail },
+                    { label: "did not pass", cls: "danger", onClick: () => { if (window.confirm(`Mark ${a.full_name} as did not pass?`)) { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } } },
+                    { label: "resend email", onClick: () => setResendInterviewApp(a) },
                   ]} />
                 </div>
               </TRow>
@@ -1226,17 +1282,17 @@ function FinalTeamPage({ apps, setPanelApp, setAcceptanceApp, setOfferApp, setRe
   return (
     <div style={{ padding: "36px 40px" }}>
       <div style={{ marginBottom: 28 }}>
-        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>the final team</p>
-        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>they made it — send job offer, then acceptance email</p>
+        <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>selected for offer</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>send job offer, then acceptance email once they sign</p>
       </div>
       <DivFilter allApps={all} active={div} onChange={setDiv} />
       <Tbl>
-        <THead cols="1fr 1fr 80px 260px">
+        <THead cols="1fr 1fr 80px 280px">
           <TH>name</TH><TH>position</TH><TH>type</TH><TH>action</TH>
         </THead>
-        {filtered.length === 0 ? <Empty msg="no new team members yet" /> :
+        {filtered.length === 0 ? <Empty msg="no one here yet" /> :
           filtered.map(a => (
-            <TRow key={a.id} cols="1fr 1fr 80px 260px" onClick={() => setPanelApp(a)}>
+            <TRow key={a.id} cols="1fr 1fr 80px 280px" onClick={() => setPanelApp(a)}>
               <TName name={a.full_name} sub={a.city} />
               <TPos>{a.position?.toLowerCase()}</TPos>
               <Badge wt={a.work_type} />
@@ -1266,36 +1322,44 @@ function FinalTeamPage({ apps, setPanelApp, setAcceptanceApp, setOfferApp, setRe
 
 function RejectedPage({ apps, updateStatus, showToast, setPanelApp }) {
   const [div, setDiv] = useState("all");
+  const [rejectionApp, setRejectionApp] = useState(null);
   const all = apps.filter(a => a.status === "rejected");
   const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
   return (
     <div style={{ padding: "36px 40px" }}>
       <div style={{ marginBottom: 28 }}>
         <p style={{ fontSize: 21, fontWeight: 300, marginBottom: 3 }}>rejected</p>
-        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>did not pass — send rejection email manually</p>
+        <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>did not pass — compose and send rejection email</p>
       </div>
       <DivFilter allApps={all} active={div} onChange={setDiv} />
       <Tbl>
-        <THead cols="1fr 1fr 80px 120px 160px">
-          <TH>name</TH><TH>position</TH><TH>type</TH><TH>rejected from</TH><TH>action</TH>
+        <THead cols="1fr 1fr 80px 120px 180px">
+          <TH>name</TH><TH>position</TH><TH>type</TH><TH>applied</TH><TH>action</TH>
         </THead>
         {filtered.length === 0 ? <Empty msg="no rejections" /> :
           filtered.map(a => (
-            <TRow key={a.id} cols="1fr 1fr 80px 120px 160px" onClick={() => setPanelApp(a)}>
+            <TRow key={a.id} cols="1fr 1fr 80px 120px 180px" onClick={() => setPanelApp(a)}>
               <TName name={a.full_name} sub={a.city} />
               <TPos>{a.position?.toLowerCase()}</TPos>
               <Badge wt={a.work_type} />
-              <span style={{ fontSize: 10, fontWeight: 200, color: "#ccc" }}>{a.rejected_from ? "from " + a.rejected_from : "—"}</span>
+              <span style={{ fontSize: 10, fontWeight: 200, color: "#ccc" }}>{fmtDate(a.created_at)}</span>
               <div onClick={e => e.stopPropagation()}>
                 {a.rejection_sent
                   ? <SentLabel text="rejection sent ✓" />
-                  : <ArBtn label="mark rejection sent" onClick={() => { updateStatus(a.id, "rejected", { rejection_sent: true }); showToast("rejection marked ✓"); }} />
+                  : <ArBtn label="send rejection email" onClick={() => setRejectionApp(a)} />
                 }
               </div>
             </TRow>
           ))
         }
       </Tbl>
+      {rejectionApp && (
+        <RejectionModal
+          app={rejectionApp}
+          onClose={() => setRejectionApp(null)}
+          onMarkSent={() => { updateStatus(rejectionApp.id, "rejected", { rejection_sent: true }); showToast("rejection marked ✓"); }}
+        />
+      )}
     </div>
   );
 }
@@ -1353,6 +1417,10 @@ export default function AdminDashboard() {
   const [toast, setToast] = useState("");
   const toastTimer = useRef(null);
 
+  // Email confirm modals
+  const [requestDocModal, setRequestDocModal] = useState(null); // app object
+  const [alignmentModal, setAlignmentModal] = useState(null);   // { app, isResend }
+
   const showToast = (msg) => {
     setToast(msg);
     clearTimeout(toastTimer.current);
@@ -1380,7 +1448,7 @@ export default function AdminDashboard() {
   }, [authed]);
 
   const updateStatus = async (id, status, extra = {}) => {
-    if (DUMMY_IDS.includes(id)) return; // dummy account — skip real update
+    if (DUMMY_IDS.includes(id)) return;
     const update = { status, ...extra };
     await supabase.from("applications").update(update).eq("id", id);
     setApps(prev => prev.map(a => a.id === id ? { ...a, ...update } : a));
@@ -1402,15 +1470,12 @@ export default function AdminDashboard() {
   if (!authed) {
     return (
       <div style={{ height: "100vh", display: "flex", fontFamily: sans, background: "#111" }}>
-        {/* Left */}
         <div style={{ width: "46%", borderRight: "1px solid #222", display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 48px" }}>
-          {/* FIX: logo proporsional + jarak ke teks */}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <img src="/logoo.png" alt="Jedda" style={{ height: 20, width: "auto", maxWidth: 160, display: "block", filter: "invert(1)", objectFit: "contain", objectPosition: "left center" }} />
             <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#444" }}>recruitment dashboard</p>
           </div>
         </div>
-        {/* Right */}
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ width: 240 }}>
             <div style={{ position: "relative", marginBottom: pwErr ? 12 : 20 }}>
@@ -1463,7 +1528,7 @@ export default function AdminDashboard() {
           onBack={() => setEvaluatingApp(null)}
           showToast={showToast}
           onPass={async () => { await updateStatus(evaluatingApp.id, "finalist", { is_priority: false }); setEvaluatingApp(null); showToast("→ finalist"); }}
-          onFail={async () => { await updateStatus(evaluatingApp.id, "rejected", { rejection_sent: false }); setEvaluatingApp(null); showToast("→ rejected"); }}
+          onFail={async () => { if (window.confirm(`Reject ${evaluatingApp.full_name}?`)) { await updateStatus(evaluatingApp.id, "rejected", { rejection_sent: false }); setEvaluatingApp(null); showToast("→ rejected"); } }}
         />
       );
     }
@@ -1491,15 +1556,16 @@ export default function AdminDashboard() {
                 style={{ border: "none", borderBottom: "1px solid #e8e8e8", padding: "6px 0", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#1a1a1a", background: "transparent", outline: "none", width: 220 }} />
             </div>
             <Tbl>
-              <THead cols="1fr 1fr 1fr 110px">
-                <TH>name</TH><TH>position</TH><TH>availability</TH><TH>status</TH>
+              <THead cols="1fr 1fr 120px 110px 110px">
+                <TH>name</TH><TH>position</TH><TH>availability</TH><TH>applied</TH><TH>status</TH>
               </THead>
               {loading ? <Empty msg="loading..." /> : filteredOverview.length === 0 ? <Empty msg="no applications yet" /> :
                 filteredOverview.map(a => (
-                  <TRow key={a.id} cols="1fr 1fr 1fr 110px" onClick={() => setPanelApp(a)}>
+                  <TRow key={a.id} cols="1fr 1fr 120px 110px 110px" onClick={() => setPanelApp(a)}>
                     <TName name={a.full_name} sub={a.city} />
                     <TPos>{a.position?.toLowerCase()}</TPos>
                     <span style={{ fontSize: 11, fontWeight: 200, color: "#999" }}>{a.availability}</span>
+                    <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb" }}>{fmtDate(a.created_at)}</span>
                     <StatusBadge status={a.status} />
                   </TRow>
                 ))
@@ -1536,11 +1602,12 @@ export default function AdminDashboard() {
                     <DocLink url={a.portfolio_url || a.portfolio_link} />
                     <span style={{ fontSize: 11, fontWeight: 200, color: a.bandung === "yes" ? "#6a9e76" : "#ccc" }}>{a.bandung || "—"}</span>
                     <div style={{ paddingLeft: 24 }} onClick={e => e.stopPropagation()}>
+                      {/* 6.1 action hierarchy: shortlisted = primary, on hold + priority = secondary, reject = danger */}
                       <ActionRow actions={[
+                        { label: "shortlisted →", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
                         { label: "on hold", onClick: () => { updateStatus(a.id, "on hold"); showToast("→ on hold"); } },
-                        { label: "shortlisted", cls: "primary", onClick: () => { updateStatus(a.id, "shortlisted"); showToast("→ shortlisted"); } },
                         { label: "priority", onClick: () => { updateStatus(a.id, "finalist", { is_priority: true }); showToast("→ finalist (priority)"); } },
-                        { label: "reject", cls: "danger", onClick: () => { if (window.confirm(`Reject ${a.full_name}? This will move them to rejected.`)) { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } } },
+                        { label: "reject", cls: "danger", onClick: () => { if (window.confirm(`Reject ${a.full_name}?`)) { updateStatus(a.id, "rejected", { rejection_sent: false }); showToast("→ rejected"); } } },
                       ]} />
                     </div>
                   </TRow>
@@ -1551,10 +1618,10 @@ export default function AdminDashboard() {
         );
       }
 
-      case "onhold":       return <OnHoldPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
+      case "onhold":       return <OnHoldPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} onRequestDocModal={setRequestDocModal} />;
       case "referredout":  return <ReferredOutPage apps={apps} setPanelApp={setPanelApp} />;
-      case "shortlisted":  return <ShortlistedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
-      case "evaluating":   return <EvaluatingPage apps={apps} setEvaluatingApp={setEvaluatingApp} showToast={showToast} />;
+      case "shortlisted":  return <ShortlistedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} onAlignmentModal={(app, isResend) => setAlignmentModal({ app, isResend })} />;
+      case "evaluating":   return <EvaluatingPage apps={apps} setEvaluatingApp={setEvaluatingApp} showToast={showToast} onAlignmentModal={(app, isResend) => setAlignmentModal({ app, isResend })} />;
       case "finalist":     return <FinalistPage apps={apps} setInterviewApp={setInterviewApp} setPanelApp={setPanelApp} />;
       case "interview":    return <InterviewPage apps={apps} updateStatus={updateStatus} showToast={showToast} setResendInterviewApp={setResendInterviewApp} />;
       case "thefinalteam": return <FinalTeamPage apps={apps} setPanelApp={setPanelApp} setAcceptanceApp={setAcceptanceApp} setOfferApp={setOfferApp} setResendOfferApp={setResendOfferApp} />;
@@ -1565,6 +1632,7 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: sans, color: "#1a1a1a" }}>
+      {/* Sidebar */}
       <div style={{ width: 196, flexShrink: 0, background: "#fff", borderRight: "1px solid #f0f0f0", display: "flex", flexDirection: "column", padding: "28px 0 20px", overflowY: "auto" }}>
         <div style={{ padding: "0 22px 20px" }}>
           <img src="/logoo.png" alt="Jedda" style={{ height: 14, width: "auto", display: "block" }} />
@@ -1584,10 +1652,12 @@ export default function AdminDashboard() {
         <SbItem id="interview" label="interview" />
         <div style={{ height: 1, background: "#f0f0f0", margin: "14px 22px" }} />
         <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: 2, color: "#ccc", textTransform: "uppercase", padding: "0 22px 8px" }}>closed</div>
-        <SbItem id="thefinalteam" label="the final team" />
+        {/* 6.6 renamed sidebar label */}
+        <SbItem id="thefinalteam" label="selected for offer" />
         <SbItem id="rejected" label="rejected" />
       </div>
 
+      {/* Main content */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         {renderPage()}
       </div>
@@ -1606,11 +1676,6 @@ export default function AdminDashboard() {
           app={interviewApp}
           onClose={() => setInterviewApp(null)}
           onConfirm={(dt, mode) => {
-            const body = buildInterviewEmail(interviewApp, mode, dt);
-            const interviewSubject = mode === "retail"
-              ? `${interviewApp.full_name.split(" ")[0]}, we'd like to meet you.`
-              : `We'd like to talk — Jedda`;
-            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(interviewApp.email)}&su=${encodeURIComponent(interviewSubject)}&body=${encodeURIComponent(body)}`, "_blank");
             updateStatus(interviewApp.id, "interview", { interview_date: dt, interview_mode: mode });
             setInterviewApp(null);
             showToast("interview scheduled ✓");
@@ -1623,24 +1688,18 @@ export default function AdminDashboard() {
           app={resendInterviewApp}
           onClose={() => setResendInterviewApp(null)}
           onSend={(division, dt) => {
-            const body = buildInterviewEmail(resendInterviewApp, division, dt);
-            const subject = division === "retail"
-              ? `${resendInterviewApp.full_name.split(" ")[0]}, we'd like to meet you.`
-              : `We'd like to talk — Jedda`;
-            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(resendInterviewApp.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank");
             updateStatus(resendInterviewApp.id, "interview", { interview_mode: division, interview_date: dt });
             setResendInterviewApp(null);
-            showToast("email reopened ✓");
+            showToast("interview email sent ✓");
           }}
         />
       )}
+
       {resendOfferApp && (
         <ResendOfferModal
           app={resendOfferApp}
           onClose={() => setResendOfferApp(null)}
-          onSend={(emailBody, workType, ptSalary, ftSalary, ftSalaryProbation, startDate) => {
-            const formattedDate = startDate ? new Date(startDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "";
-            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(resendOfferApp.email)}&su=${encodeURIComponent("Congratulations — Jedda")}&body=${encodeURIComponent(emailBody)}`, "_blank");
+          onSend={(emailBody, workType, ptSalary, ftSalary, ftSalaryProbation, formattedDate) => {
             updateStatus(resendOfferApp.id, "the final team", {
               offer_sent: true,
               offer_work_type: workType,
@@ -1654,15 +1713,14 @@ export default function AdminDashboard() {
           }}
         />
       )}
+
       {offerApp && (
         <OfferModal
           app={offerApp}
           onClose={() => setOfferApp(null)}
-          onConfirm={({ sendMode, ptSalary, ftSalary, ftSalaryProbation, startDate, emailBody }) => {
-            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(offerApp.email)}&su=${encodeURIComponent("Congratulations — Jedda")}&body=${encodeURIComponent(emailBody)}`, "_blank");
+          onConfirm={({ sendMode, ptSalary, ftSalary, ftSalaryProbation, startDate }) => {
             const workType = sendMode === "pt" ? "Part-Time" : sendMode === "ft" ? "Full-Time" : "Part-Time / Full-Time";
-            const d = new Date(startDate);
-            const formattedDate = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+            const formattedDate = startDate ? new Date(startDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "";
             updateStatus(offerApp.id, "the final team", {
               offer_sent: true,
               offer_work_type: workType,
@@ -1682,12 +1740,42 @@ export default function AdminDashboard() {
           app={acceptanceApp}
           onClose={() => setAcceptanceApp(null)}
           onConfirm={() => {
-            const body = `Hi ${acceptanceApp.full_name.split(" ")[0]},\n\nWelcome to Jedda.\n\nYou're officially part of the team as ${acceptanceApp.position?.toLowerCase()}. We're glad to have you with us — onboarding details will follow shortly.\n\n— Jedda Team`;
-            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(acceptanceApp.email)}&su=Welcome%20to%20Jedda&body=${encodeURIComponent(body)}`, "_blank");
             updateStatus(acceptanceApp.id, "the final team", { acceptance_sent: true });
-            setAcceptanceApp(null);
             showToast("acceptance sent ✓");
           }}
+        />
+      )}
+
+      {/* 6.2 request doc email confirm */}
+      {requestDocModal && (
+        <EmailConfirmModal
+          title="request document"
+          subtitle={`${requestDocModal.full_name} — ${requestDocModal.position?.toLowerCase()}`}
+          preview={buildRequestDocEmail(requestDocModal).body}
+          onOpen={() => openGmail(buildRequestDocEmail(requestDocModal))}
+          onMarkSent={() => {
+            updateStatus(requestDocModal.id, "on hold", { document_requested: true });
+            showToast("document requested ✓");
+          }}
+          onClose={() => setRequestDocModal(null)}
+        />
+      )}
+
+      {/* 6.2 alignment test email confirm */}
+      {alignmentModal && (
+        <EmailConfirmModal
+          title={alignmentModal.isResend ? "resend alignment test" : "send alignment test"}
+          subtitle={`${alignmentModal.app.full_name} — ${alignmentModal.app.position?.toLowerCase()}`}
+          preview={buildAlignmentTestEmail(alignmentModal.app).body}
+          onOpen={() => openGmail(buildAlignmentTestEmail(alignmentModal.app))}
+          onMarkSent={() => {
+            if (!alignmentModal.isResend) {
+              updateStatus(alignmentModal.app.id, "evaluating", { alignment_test_sent: true });
+            }
+            showToast(alignmentModal.isResend ? "email reopened ✓" : "alignment test sent ✓");
+          }}
+          onClose={() => setAlignmentModal(null)}
+          markSentLabel={alignmentModal.isResend ? "done ✓" : "mark as sent ✓"}
         />
       )}
 

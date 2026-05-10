@@ -1,10 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from "./supabase.js";
 
 const sans = "'DM Sans', sans-serif";
 
@@ -87,6 +82,12 @@ canvas{display:block;width:100%;height:100px;background:#fafafa;border:1px solid
 .btn-accept.on{background:#1a1a1a;color:#fff;cursor:pointer}
 .btn-print{background:none;border:none;border-bottom:1px solid #ddd;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:300;color:#bbb;cursor:pointer;padding-bottom:2px;letter-spacing:1px}
 .cta-row{display:flex;align-items:center;gap:24px;border-top:1px solid #f0f0f0;padding-top:28px;flex-wrap:wrap}
+.confirm-check{display:flex;align-items:flex-start;gap:12px;padding:16px;background:#fafafa;border:1px solid #ebebeb;border-radius:3px;cursor:pointer;transition:border-color 0.15s;user-select:none;margin-bottom:28px}
+.confirm-check:hover{border-color:#ccc}
+.confirm-check.checked{border-color:#1a1a1a;background:#fff}
+.typed-sig{width:100%;background:transparent;border:none;border-bottom:1px solid #e8e8e8;padding:10px 0;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:300;font-style:italic;color:#1a1a1a;outline:none;transition:border-color 0.2s}
+.typed-sig:focus{border-bottom-color:#1a1a1a}
+.typed-sig::placeholder{color:#ccc;font-style:normal}
 @media print{
   @page{size:A4 portrait;margin:22mm 20mm 22mm 20mm}
   .topbar,.cta-row,.no-print,.btn-print,.conn-box,.zones{display:none!important}
@@ -156,13 +157,12 @@ function ZoneCard({ zone, open, onToggle }) {
 function ConnDiagram({ conn }) {
   const ins = conn.filter(c => c.dir === "in");
   const outs = conn.filter(c => c.dir === "out");
-  const NODE_H = 52; // height per node slot (node box ~32px + label ~12px + gap 8px)
+  const NODE_H = 52;
   const youH = Math.max(ins.length, outs.length) * NODE_H;
   return (
     <div className="conn-box">
       <p style={{ fontSize: 7, fontWeight: 300, letterSpacing: 3, color: "#ccc", marginBottom: 18, textTransform: "uppercase" }}>who you work with</p>
       <div style={{ display: "flex", alignItems: "center" }}>
-        {/* Left nodes */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 120 }}>
           {ins.map((c, i) => (
             <div key={i} style={{ height: NODE_H, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -171,7 +171,6 @@ function ConnDiagram({ conn }) {
             </div>
           ))}
         </div>
-        {/* Left arrows */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {ins.map((_, i) => (
             <div key={i} style={{ height: NODE_H, display: "flex", alignItems: "center" }}>
@@ -180,11 +179,9 @@ function ConnDiagram({ conn }) {
             </div>
           ))}
         </div>
-        {/* You node */}
         <div style={{ display: "flex", alignItems: "center", height: youH }}>
           <div className="conn-node you">you</div>
         </div>
-        {/* Right arrows */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {outs.map((_, i) => (
             <div key={i} style={{ height: NODE_H, display: "flex", alignItems: "center" }}>
@@ -193,7 +190,6 @@ function ConnDiagram({ conn }) {
             </div>
           ))}
         </div>
-        {/* Right nodes */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 120 }}>
           {outs.map((c, i) => (
             <div key={i} style={{ height: NODE_H, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -249,8 +245,10 @@ export default function OfferPage() {
   const [phase, setPhase] = useState("offer");
   const [activeMode, setActiveMode] = useState(null);
   const [openZone, setOpenZone] = useState(null);
-  const [signature, setSignature] = useState(null);
-  const [sigDataUrl, setSigDataUrl] = useState(null);
+  const [drawnSig, setDrawnSig] = useState(null);       // canvas dataUrl
+  const [typedSig, setTypedSig] = useState("");          // typed name fallback
+  const [confirmed, setConfirmed] = useState(false);     // acceptance checkbox
+  const [sigDataUrl, setSigDataUrl] = useState(null);    // stored for print doc
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState("");
   const [readOnly, setReadOnly] = useState(false);
@@ -269,21 +267,36 @@ export default function OfferPage() {
     supabase.from("applications").select("*").eq("id", id).maybeSingle()
       .then(({ data, error: err }) => {
         if (err || !data) { setError("Offer not found."); }
-        else if (data.offer_accepted_at) { setPhase("accepted"); setApp(data); }
+        else if (data.offer_accepted_at) {
+          setPhase("accepted");
+          setApp(data);
+          // restore sigDataUrl if it was a drawn sig (dataUrl starts with "data:")
+          if (data.offer_signature?.startsWith("data:")) setSigDataUrl(data.offer_signature);
+        }
         else if (!data.offer_sent) { setError("This offer is not available yet."); }
         else { setApp(data); const m = getMode(data.offer_work_type); setActiveMode(m === "both" ? "pt" : m); }
         setLoading(false);
       });
   }, [id]);
 
+  // Derived
+  const hasSignature = drawnSig || typedSig.trim().length > 0;
+  const canAccept = hasSignature && confirmed;
+
   const handleAccept = async () => {
-    if (!signature) return;
+    if (!canAccept) return;
     setSubmitting(true);
     try {
+      // What to store: prefer drawn dataUrl, else typed name prefixed
+      const sigToStore = drawnSig || `[typed] ${typedSig.trim()}`;
       const now = new Date().toISOString();
-      const { error: err } = await supabase.from("applications").update({ offer_accepted_at: now, offer_signature: signature }).eq("id", id);
+      const { error: err } = await supabase.from("applications").update({
+        offer_accepted_at: now,
+        offer_signature: sigToStore,
+      }).eq("id", id);
       if (err) throw err;
-      setSigDataUrl(signature);
+      // Only store dataUrl for drawn sig (for print doc image)
+      setSigDataUrl(drawnSig || null);
       setApp(prev => ({ ...prev, offer_accepted_at: now }));
       setPhase("accepted");
     } catch { setSubmitErr("Something went wrong. Please try again."); }
@@ -333,14 +346,14 @@ export default function OfferPage() {
           <div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto 32px" }} />
           <p style={{ fontSize: 18, fontWeight: 300, marginBottom: 12 }}>You're in.</p>
           <p style={{ fontSize: 12, fontWeight: 300, color: "#999", lineHeight: 2, maxWidth: 320, margin: "0 auto 36px" }}>
-            Your signature has been recorded. To finalize your placement, please complete the step below.
+            Your signature has been recorded. To finalize your placement, please complete the steps below.
           </p>
           <div style={{ background: "#fff", border: "1px solid #e8e8e8", padding: "24px 28px", textAlign: "left", marginBottom: 28 }}>
             <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 16 }}>what to do next</p>
             <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 14 }}>
               <span style={{ fontSize: 9, fontWeight: 400, color: "#ccc", marginTop: 1, flexShrink: 0 }}>01</span>
               <p style={{ fontSize: 12, fontWeight: 300, color: "#555", lineHeight: 1.8 }}>
-                Download your signed offer letter using the button below.
+                Save your signed offer letter as a PDF using the button below.
               </p>
             </div>
             <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -351,11 +364,14 @@ export default function OfferPage() {
             </div>
           </div>
           <button onClick={() => { setTimeout(() => window.print(), 150); }}
-            style={{ background: "#1a1a1a", border: "none", color: "#fff", fontFamily: sans, fontSize: 11, fontWeight: 300, padding: "13px 32px", cursor: "pointer", letterSpacing: 1.5, display: "block", width: "100%", marginBottom: 12 }}>
-            download offer letter →
+            style={{ background: "#1a1a1a", border: "none", color: "#fff", fontFamily: sans, fontSize: 11, fontWeight: 300, padding: "13px 32px", cursor: "pointer", letterSpacing: 1.5, display: "block", width: "100%", marginBottom: 8 }}>
+            save signed offer as PDF →
           </button>
+          <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", lineHeight: 1.8, marginBottom: 20 }}>
+            choose "Save as PDF" in the print window, then email it to us within 24 hours.
+          </p>
           <p style={{ fontSize: 10, fontWeight: 300, color: "#bbb", lineHeight: 1.8 }}>
-            Open your email app and attach the downloaded PDF.<br />Subject: <em>Offer Acceptance — {firstName}</em>
+            Subject: <em>Offer Acceptance — {firstName}</em>
           </p>
           <div style={{ height: 24 }} />
           <button onClick={() => { setReadOnly(true); setPhase("offer"); }}
@@ -364,6 +380,7 @@ export default function OfferPage() {
           </button>
         </div>
       </div>
+
       {/* Print doc */}
       <div className="print-show" style={{ display: "none" }}>
         <div className="doc" style={{ padding: "32px 0" }}>
@@ -380,7 +397,6 @@ export default function OfferPage() {
             We're pleased to offer you a position at Jedda. After our conversation, we're confident you'd bring the right energy and capability to the role — and we'd love to welcome you to the team.
           </p>
 
-          {/* Offer Details */}
           <p className="eyebrow">offer details</p>
           <div className="rule-dark" style={{ marginBottom: 4 }} />
           <div className="detail-grid" style={{ marginBottom: 32 }}>
@@ -389,7 +405,6 @@ export default function OfferPage() {
             ))}
           </div>
 
-          {/* What you'll do */}
           <p className="eyebrow" style={{ marginTop: 28 }}>what you'll do</p>
           <div className="rule-dark" style={{ marginBottom: 16 }} />
           {(rawMode === "both" ? ZONES_PT : rawMode === "ft" ? ZONES_FT : ZONES_PT).map((z, i) => (
@@ -405,10 +420,9 @@ export default function OfferPage() {
             </div>
           ))}
 
-          {/* Your Schedule */}
           <p className="eyebrow print-section" style={{ marginTop: 28 }}>your schedule</p>
           <div className="rule-dark" style={{ marginBottom: 0 }} />
-          {rawMode === "ft" || (rawMode === "both") ? (
+          {rawMode === "ft" || rawMode === "both" ? (
             <>
               <div className="print-schedule-row" style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f5f5f5" }}>
                 <span style={{ fontSize: 9, fontWeight: 300, color: "#bbb", letterSpacing: 1, textTransform: "uppercase" }}>store shifts</span>
@@ -432,10 +446,14 @@ export default function OfferPage() {
             </>
           )}
 
-          {/* Signature */}
           <div className="print-sig" style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid #f0f0f0" }}>
             <p style={{ fontSize: 8, fontWeight: 300, color: "#bbb", marginBottom: 8, letterSpacing: 2, textTransform: "uppercase" }}>your signature</p>
-            {sigDataUrl && <img src={sigDataUrl} alt="signature" style={{ height: 80, objectFit: "contain", objectPosition: "left", borderBottom: "1px solid #1a1a1a" }} />}
+            {sigDataUrl
+              ? <img src={sigDataUrl} alt="signature" style={{ height: 80, objectFit: "contain", objectPosition: "left", borderBottom: "1px solid #1a1a1a" }} />
+              : <p style={{ fontSize: 18, fontWeight: 300, fontStyle: "italic", borderBottom: "1px solid #1a1a1a", paddingBottom: 8, display: "inline-block", minWidth: 200 }}>
+                  {typedSig || app.full_name}
+                </p>
+            }
             <p style={{ fontSize: 11, fontWeight: 300, marginTop: 8 }}>{app.full_name}</p>
             <p style={{ fontSize: 9, fontWeight: 200, color: "#bbb", marginTop: 3 }}>Signed {acceptedDate}</p>
           </div>
@@ -447,7 +465,6 @@ export default function OfferPage() {
   // ── OFFER ────────────────────────────────────────────────
   return (
     <div style={{ fontFamily: sans }}>
-      {/* Topbar */}
       <div className="topbar">
         <div className="topbar-inner" style={{ padding: "0 48px" }}>
           <span style={{ fontSize: 10, fontWeight: 400, letterSpacing: 6, padding: "20px 0", display: "block" }}>JEDDA</span>
@@ -468,14 +485,12 @@ export default function OfferPage() {
       </div>
 
       <div className="doc">
-        {/* Title */}
         <div style={{ padding: "40px 0 32px" }}>
           <p className="eyebrow" style={{ marginBottom: 8 }}>job offer</p>
           <p style={{ fontSize: 26, fontWeight: 300, marginBottom: 6, lineHeight: 1.2 }}>{roleTitle}</p>
           <div className="rule-light" />
         </div>
 
-        {/* Greeting */}
         <div className="section">
           <p style={{ fontSize: 13, fontWeight: 300, marginBottom: 12 }}>Dear {firstName},</p>
           <p style={{ fontSize: 12, fontWeight: 300, color: "#666", lineHeight: 2 }}>
@@ -483,7 +498,6 @@ export default function OfferPage() {
           </p>
         </div>
 
-        {/* Details */}
         <div className="section">
           <p className="eyebrow">offer details</p>
           <div className="rule-dark" />
@@ -497,14 +511,12 @@ export default function OfferPage() {
           </div>
         </div>
 
-        {/* Week */}
         <div className="section">
           <p className="eyebrow">your week</p>
           <div className="rule-dark" />
           <WeekSchedule mode={displayMode} />
         </div>
 
-        {/* Role */}
         <div className="section">
           <p className="eyebrow">your role</p>
           <div className="rule-dark" />
@@ -521,13 +533,11 @@ export default function OfferPage() {
           <ConnDiagram conn={conn} />
         </div>
 
-        {/* Closing */}
         <div className="rule-light" style={{ marginBottom: 24 }} />
         <p style={{ fontSize: 12, fontWeight: 300, color: "#666", lineHeight: 2, marginBottom: 40 }}>
-          Please review this offer carefully. If you'd like to accept, sign below — your digital signature will be recorded along with the timestamp. You can also print or save this document for your records.
+          Please review this offer carefully. If you'd like to accept, sign below — your signature will be recorded along with the timestamp.
         </p>
 
-        {/* Signature / CTA */}
         {readOnly ? (
           <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 28, marginBottom: 40 }}>
             <p style={{ fontSize: 12, fontWeight: 300, color: "#aaa", lineHeight: 1.9, marginBottom: 20 }}>
@@ -540,17 +550,55 @@ export default function OfferPage() {
           </div>
         ) : (
           <>
-            {/* Signature */}
-            <div style={{ marginBottom: 40, maxWidth: 380 }}>
+            {/* Signature section */}
+            <div style={{ marginBottom: 24, maxWidth: 480 }}>
               <p style={{ fontSize: 8, fontWeight: 300, letterSpacing: 2, color: "#bbb", marginBottom: 12, textTransform: "uppercase" }}>your signature</p>
-              <SigCanvas onSign={setSignature} onClear={() => setSignature(null)} />
+              <SigCanvas onSign={setDrawnSig} onClear={() => setDrawnSig(null)} />
+
+              {/* Typed fallback */}
+              <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "16px 0 10px" }}>
+                <div style={{ flex: 1, height: 1, background: "#f0f0f0" }} />
+                <span style={{ fontSize: 10, fontWeight: 200, color: "#ccc", letterSpacing: 1, whiteSpace: "nowrap" }}>or type your name</span>
+                <div style={{ flex: 1, height: 1, background: "#f0f0f0" }} />
+              </div>
+              <input
+                className="typed-sig"
+                type="text"
+                placeholder="your full name as signature"
+                value={typedSig}
+                onChange={e => setTypedSig(e.target.value)}
+              />
               <p style={{ fontSize: 10, fontWeight: 300, color: "#bbb", marginTop: 8 }}>{app.full_name}</p>
             </div>
+
+            {/* Confirmation checkbox */}
+            <div
+              className={`confirm-check${confirmed ? " checked" : ""}`}
+              onClick={() => setConfirmed(v => !v)}
+              style={{ maxWidth: 480 }}
+            >
+              <div style={{
+                width: 16, height: 16, border: `1px solid ${confirmed ? "#1a1a1a" : "#ddd"}`,
+                background: confirmed ? "#1a1a1a" : "#fff", flexShrink: 0, marginTop: 1,
+                display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s"
+              }}>
+                {confirmed && (
+                  <svg viewBox="0 0 9 7" fill="none" width="8" height="8">
+                    <path d="M1 3.5l2.5 2.5L8 1" stroke="white" strokeWidth="1.5"/>
+                  </svg>
+                )}
+              </div>
+              <p style={{ fontSize: 12, fontWeight: 300, color: confirmed ? "#1a1a1a" : "#aaa", lineHeight: 1.7, transition: "color 0.15s" }}>
+                I've reviewed the offer details and agree to accept this role at Jedda.
+              </p>
+            </div>
+
             {/* CTA */}
             <div className="cta-row no-print">
               {submitErr && <p style={{ fontSize: 11, color: "#c47a5a", fontWeight: 300 }}>{submitErr}</p>}
-              {!signature && <p style={{ fontSize: 11, fontWeight: 300, color: "#bbb" }}>please sign above to accept</p>}
-              <button className={`btn-accept${signature ? " on" : ""}`} disabled={!signature || submitting} onClick={handleAccept}>
+              {!hasSignature && <p style={{ fontSize: 11, fontWeight: 300, color: "#bbb" }}>please sign or type your name above to accept</p>}
+              {hasSignature && !confirmed && <p style={{ fontSize: 11, fontWeight: 300, color: "#bbb" }}>please confirm your acceptance above</p>}
+              <button className={`btn-accept${canAccept ? " on" : ""}`} disabled={!canAccept || submitting} onClick={handleAccept}>
                 {submitting ? "confirming..." : "accept offer →"}
               </button>
               <button className="btn-print" onClick={() => window.print()}>print / save</button>

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase.js";
 
 // ── RECRUITMENT CLOSED FLAG ──────────────────────────────────
-// Set to true when no longer accepting applications
 const RECRUITMENT_OPEN = false;
 
 const DIVISIONS = [
@@ -70,6 +69,9 @@ const FD_SPECS = ["shirts", "outerwear", "knitwear", "pants & bottoms", "pattern
 const AVAIL_OPTIONS = ["immediately", "within 1 month", "within 3 months", "other"];
 const sans = "'DM Sans', sans-serif";
 
+// Roles that require portfolio (design + creative divisions)
+const PORTFOLIO_REQUIRED_IDS = ["ddl", "fd", "vd", "csm", "dgs"];
+
 const Logo = ({ hero = false, img = false }) => {
   const h = hero ? 20 : 14;
   if (img) return <img src="/logo.png" alt="Jedda" style={{ height: h, width: "auto", display: "block", margin: "0 auto" }} />;
@@ -98,6 +100,26 @@ function RecruitmentClosedModal({ onClose, onApplyAnyway }) {
         <Lnk text="apply anyway →" onClick={onApplyAnyway} bold />
         <div style={{ height: 16 }} />
         <button onClick={onClose} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 200, color: "#ccc", cursor: "pointer", letterSpacing: 1 }}>maybe later</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Sales onsite no-match screen ─────────────────────────────
+function OnsiteNoScreen({ onViewRoles }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans, color: "#1a1a1a", padding: 24 }}>
+      <div style={{ textAlign: "center", maxWidth: 340 }}>
+        <Logo img />
+        <div style={{ height: 40 }} />
+        <div style={{ width: 24, height: 1, background: "#e0e0e0", margin: "0 auto 32px" }} />
+        <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 14, lineHeight: 1.6 }}>
+          this role requires on-site availability in Bandung.
+        </p>
+        <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 1.9, marginBottom: 40 }}>
+          for now, this position may not be the right fit — but you can still explore other roles at Jedda.
+        </p>
+        <Lnk text="view other roles →" onClick={onViewRoles} bold />
       </div>
     </div>
   );
@@ -153,6 +175,7 @@ export default function App() {
   const isSales = role?.id === "sa";
   const isOther = role?.id === "other";
   const needsBandung = !isSales;
+  const portfolioRequired = role?.id ? PORTFOLIO_REQUIRED_IDS.includes(role.id) : false;
 
   const formSteps = [
     ...(isOther ? ["otherRole"] : []),
@@ -176,7 +199,8 @@ export default function App() {
   const goForm = (n) => { if (anim || n < 0 || n >= totalForm) return; setDir(n > step ? 1 : -1); setAnim(true); setVis(false); setTimeout(() => { setStep(n); setVis(true); setAnim(false); }, 350); };
   const nextForm = () => {
     if (!validateForm()) return;
-    if (curForm === "onsite" && d.onsite === false) { setPhase("listing"); return; }
+    // Instead of going to listing, show the dedicated no-onsite screen
+    if (curForm === "onsite" && d.onsite === false) { setPhase("onsite_no"); return; }
     goForm(step + 1);
   };
   const prevForm = () => { if (step === 0) { setPhase(isOther ? "listing" : "detail"); return; } goForm(step - 1); };
@@ -197,6 +221,9 @@ export default function App() {
     if (k === "avail" && !d.avail) e.avail = "please select one";
     if (k === "avail" && d.avail === "other" && !d.availOther.trim()) e.availOther = "please specify";
     if (k === "upload" && !d.cv) e.cv = "please upload your cv";
+    if (k === "upload" && portfolioRequired && !d.portfolio && !d.portfolioLink.trim()) {
+      e.portfolio = "portfolio is required for this role — upload a pdf or paste a link";
+    }
     if (k === "upload" && d.portfolioLink.trim()) {
       const link = d.portfolioLink.trim();
       if (!link.startsWith("http://") && !link.startsWith("https://")) e.portfolioLink = "please include https:// at the start";
@@ -207,6 +234,7 @@ export default function App() {
   const onKey = (e) => { if (e.key === "Enter" && !e.shiftKey && curForm !== "review" && curForm !== "whyJedda") { e.preventDefault(); nextForm(); } };
 
   const submitForm = async () => {
+    if (submitting) return;
     setSubmitting(true);
     setSubmitErr("");
     try {
@@ -271,53 +299,54 @@ export default function App() {
   const startApply = () => { setD({ otherRole: "", fdSpecs: [], fdSpecOther: "", workType: "", fullName: "", phone: "", email: "", city: "", bandung: null, whyJedda: "", avail: "", availOther: "", cv: null, portfolio: null, portfolioLink: "", onsite: null }); setCvName(""); setPortName(""); setStep(0); setSubmitErr(""); goTo("form"); };
 
   const handleViewRoles = () => {
-    if (!RECRUITMENT_OPEN) {
-      setShowClosedModal(true);
-    } else {
-      goTo("listing");
-    }
+    if (!RECRUITMENT_OPEN) { setShowClosedModal(true); } else { goTo("listing"); }
   };
 
   const slide = { opacity: vis ? 1 : 0, transform: vis ? "translateY(0)" : `translateY(${dir * 10}px)`, transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)" };
 
-// ═══ DONE ═══
-if (done) return (
-  <Sh>
-    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
-        <Logo hero img />
-        <div style={{ height: 28 }} />
-        <div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto 28px" }} />
-        <p style={{ fontSize: 14, fontWeight: 300 }}>thank you for your application.</p>
-        <div style={{ height: 10 }} />
-        <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 1.8 }}>
-          we have received your submission and will review it carefully.<br />you will hear from us soon.
-        </p>
-        <div style={{ height: 40 }} />
-        <div style={{ width: "100%", height: 1, background: "#f0f0f0" }} />
-        <div style={{ height: 36 }} />
-        <p style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", marginBottom: 16 }}>know someone who'd be a good fit?</p>
-        <a
-          href="https://wa.me/?text=Jedda%20is%20currently%20open%20for%20recruitment.%0ACheck%20out%20the%20available%20roles%20here%20%E2%86%92%20https%3A%2F%2Fjedda-recruitments.vercel.app%2F"
-          target="_blank"
-          rel="noreferrer"
-          style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#1a1a1a" xmlns="http://www.w3.org/2000/svg">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-          </svg>
-          <span style={{ fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", letterSpacing: 1.5, borderBottom: "1px solid #1a1a1a", paddingBottom: 3 }}>spread the word →</span>
-        </a>
-        <div style={{ height: 64 }} />
-        <button
-          className="m-link"
-          onClick={() => { setDone(false); goTo("listing"); }}
-          style={{ background: "none", border: "none", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#bbb", cursor: "pointer", letterSpacing: 1.5, borderBottom: "1px solid #e0e0e0", paddingBottom: 2 }}
-        >← explore other roles</button>
+  // ═══ ONSITE NO ═══
+  if (phase === "onsite_no") return (
+    <OnsiteNoScreen onViewRoles={() => goTo("listing")} />
+  );
+
+  // ═══ DONE ═══
+  if (done) return (
+    <Sh>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div style={{ textAlign: "center", maxWidth: 360, width: "100%" }}>
+          <Logo hero img />
+          <div style={{ height: 28 }} />
+          <div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto 28px" }} />
+          <p style={{ fontSize: 14, fontWeight: 300 }}>thank you for your application.</p>
+          <div style={{ height: 10 }} />
+          <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 1.8 }}>
+            we have received your submission and will review it carefully.<br />you will hear from us soon.
+          </p>
+          <div style={{ height: 40 }} />
+          <div style={{ width: "100%", height: 1, background: "#f0f0f0" }} />
+          <div style={{ height: 36 }} />
+          <p style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase", color: "#bbb", marginBottom: 16 }}>know someone who'd be a good fit?</p>
+          <a
+            href="https://wa.me/?text=Jedda%20is%20currently%20open%20for%20recruitment.%0ACheck%20out%20the%20available%20roles%20here%20%E2%86%92%20https%3A%2F%2Fjedda-recruitments.vercel.app%2F"
+            target="_blank"
+            rel="noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none" }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#1a1a1a" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            <span style={{ fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#1a1a1a", letterSpacing: 1.5, borderBottom: "1px solid #1a1a1a", paddingBottom: 3 }}>spread the word →</span>
+          </a>
+          <div style={{ height: 64 }} />
+          <button
+            className="m-link"
+            onClick={() => { setDone(false); goTo("listing"); }}
+            style={{ background: "none", border: "none", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#bbb", cursor: "pointer", letterSpacing: 1.5, borderBottom: "1px solid #e0e0e0", paddingBottom: 2 }}
+          >← explore other roles</button>
+        </div>
       </div>
-    </div>
-  </Sh>
-);
+    </Sh>
+  );
 
   // ═══ WELCOME ═══
   if (phase === "welcome") return (
@@ -325,10 +354,7 @@ if (done) return (
       {showClosedModal && (
         <RecruitmentClosedModal
           onClose={() => setShowClosedModal(false)}
-          onApplyAnyway={() => {
-            setShowClosedModal(false);
-            goTo("listing");
-          }}
+          onApplyAnyway={() => { setShowClosedModal(false); goTo("listing"); }}
         />
       )}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -455,7 +481,19 @@ if (done) return (
               {cvName ? (<><p style={{ fontSize: 13, color: "#1a1a1a", marginBottom: 4 }}>✓</p><p style={{ fontSize: 12, fontWeight: 400, color: "#1a1a1a" }}>{cvName}</p><p style={uh}>click to replace</p></>) : (<><p style={{ fontSize: 13, color: "#ccc", marginBottom: 4 }}>↑</p><p style={{ fontSize: 12, fontWeight: 300, color: "#999" }}>click to upload</p></>)}
             </div>{err.cv && <p style={es}>{err.cv}</p>}
             <div style={{ height: 24 }} />
-            <p style={{ ...ul, marginTop: 0 }}>portfolio <span style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span></p>
+            {/* Portfolio label — required for design/creative, optional for others */}
+            <p style={{ ...ul, marginTop: 0 }}>
+              portfolio{" "}
+              {portfolioRequired
+                ? <span style={{ textTransform: "none", letterSpacing: 0, color: "#c47a5a" }}>*</span>
+                : <span style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+              }
+            </p>
+            {portfolioRequired && (
+              <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 10 }}>
+                upload a PDF or paste a public link to your work.
+              </p>
+            )}
             <input ref={portRef} type="file" accept=".pdf" onChange={handleFile("portfolio")} style={{ display: "none" }} />
             <div className="m-upload" onClick={() => portRef.current?.click()} style={ub}>
               {portName ? (<><p style={{ fontSize: 13, color: "#1a1a1a", marginBottom: 4 }}>✓</p><p style={{ fontSize: 12, fontWeight: 400, color: "#1a1a1a" }}>{portName}</p><p style={uh}>click to replace</p></>) : (<><p style={{ fontSize: 13, color: "#ccc", marginBottom: 4 }}>↑</p><p style={{ fontSize: 12, fontWeight: 300, color: "#999" }}>click to upload pdf</p></>)}
@@ -467,6 +505,7 @@ if (done) return (
             </div>
             <input style={{ ...il, fontSize: 13 }} placeholder="paste a link — behance, dribbble, issuu, notion, etc." type="url" value={d.portfolioLink} onChange={e => { setD({ ...d, portfolioLink: e.target.value }); setErr({}); }} onKeyDown={onKey} />
             {err.portfolioLink && <p style={es}>{err.portfolioLink}</p>}
+            {err.portfolio && <p style={es}>{err.portfolio}</p>}
             <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", marginTop: 7 }}>make sure the link is publicly accessible</p>
           </div>);
 

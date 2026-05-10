@@ -74,8 +74,8 @@ export default function ReuploadPage() {
       }
 
       const update = fileObj.current
-        ? { portfolio_url: portfolioUrl, portfolio_link: "" }
-        : { portfolio_link: portfolioLink.trim(), portfolio_url: "" };
+        ? { portfolio_url: portfolioUrl, portfolio_link: "", document_reuploaded_at: new Date().toISOString() }
+        : { portfolio_link: portfolioLink.trim(), portfolio_url: "", document_reuploaded_at: new Date().toISOString() };
 
       const { error: dbErr } = await supabase
         .from("applications")
@@ -93,18 +93,26 @@ export default function ReuploadPage() {
   // ── not found ──
   if (status === "notfound") return (
     <Shell>
-      <p style={{ fontSize: 13, fontWeight: 300, color: "#999", textAlign: "center" }}>this link is no longer valid.</p>
+      <p style={{ fontSize: 13, fontWeight: 300, color: "#999", textAlign: "center", lineHeight: 1.8 }}>
+        we couldn't find this link.
+        <br />
+        <span style={{ fontSize: 12, fontWeight: 200, color: "#bbb" }}>
+          please check the link from your email or contact Jedda if you think this is a mistake.
+        </span>
+      </p>
     </Shell>
   );
 
   // ── done ──
   if (status === "done") return (
     <Shell>
-      <img src="/logo.png" alt="Jedda" style={{ height: 16, width: "auto", display: "block", margin: "0 auto 32px" }} />
+      <img src="/logoo.png" alt="Jedda" style={{ height: 16, width: "auto", display: "block", margin: "0 auto 32px" }} />
       <div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto 28px" }} />
-      <p style={{ fontSize: 14, fontWeight: 300, textAlign: "center" }}>thank you for your submission.</p>
-      <p style={{ fontSize: 12, fontWeight: 200, color: "#999", marginTop: 10, textAlign: "center", lineHeight: 1.8 }}>
-        we'll review it and get back to you if needed.
+      <p style={{ fontSize: 14, fontWeight: 300, textAlign: "center", marginBottom: 12 }}>we've received your updated document.</p>
+      <p style={{ fontSize: 12, fontWeight: 200, color: "#999", marginTop: 0, textAlign: "center", lineHeight: 1.9 }}>
+        there's no need to submit again — our team will continue reviewing your application.
+        <br />
+        if we need anything else, we'll contact you directly.
       </p>
     </Shell>
   );
@@ -112,15 +120,17 @@ export default function ReuploadPage() {
   // ── form ──
   return (
     <Shell>
-      <img src="/logo.png" alt="Jedda" style={{ height: 16, width: "auto", display: "block", margin: "0 auto 32px" }} />
+      <img src="/logoo.png" alt="Jedda" style={{ height: 16, width: "auto", display: "block", margin: "0 auto 32px" }} />
       <div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto 28px" }} />
 
       <p style={{ fontSize: 12, fontWeight: 200, color: "#999", textAlign: "center", marginBottom: 36, lineHeight: 1.8 }}>
-  please re-share your portfolio below. </p>
+        please re-upload or replace the document we requested.
+        <br />
+        you can upload a PDF or paste a public link.
+      </p>
 
-      {/* file upload */}
       <p style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>
-        portfolio <span style={{ textTransform: "none", letterSpacing: 0 }}>(pdf, max 5mb)</span>
+        document <span style={{ textTransform: "none", letterSpacing: 0 }}>(pdf, max 5mb)</span>
       </p>
       <input ref={fileRef} type="file" accept=".pdf" onChange={handleFile} style={{ display: "none" }} />
       <div className="ru-upload" onClick={() => fileRef.current?.click()}
@@ -138,14 +148,12 @@ export default function ReuploadPage() {
         }
       </div>
 
-      {/* or divider */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0 16px" }}>
         <div style={{ flex: 1, height: 1, background: "#f0f0f0" }} />
         <span style={{ fontSize: 10, fontWeight: 200, color: "#ccc", letterSpacing: 1 }}>or</span>
         <div style={{ flex: 1, height: 1, background: "#f0f0f0" }} />
       </div>
 
-      {/* link input */}
       <input
         style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #e8e8e8", padding: "10px 0", fontFamily: sans, fontSize: 13, fontWeight: 300, color: "#1a1a1a", outline: "none", transition: "border-color 0.3s" }}
         placeholder="paste a link — behance, dribbble, notion, etc."
@@ -154,7 +162,7 @@ export default function ReuploadPage() {
         onChange={e => { setPortfolioLink(e.target.value); setErr(""); }}
       />
       <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", marginTop: 7, marginBottom: 32 }}>
-        make sure the link is publicly accessible
+        make sure the link is public or accessible without login.
       </p>
 
       {err && <p style={{ fontSize: 11, fontWeight: 300, color: "#c47a5a", marginBottom: 16 }}>{err}</p>}

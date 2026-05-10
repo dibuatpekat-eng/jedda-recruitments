@@ -3,7 +3,6 @@ import { supabase } from "./supabase.js";
 
 const sans = "'Figtree', sans-serif";
 
-// Q3 initial order — shuffled (not ideal order)
 const RANK_ITEMS_DEFAULT = [
   "How it looks in photos",
   "The quality and construction — the intention behind how it's made",
@@ -27,9 +26,13 @@ input:focus,textarea:focus{outline:none}
 .at-pitem.dimmed{opacity:0.25;pointer-events:none}
 .at-pitem.selected{outline:1.5px solid #111;outline-offset:-1px}
 .at-pitem.selected .at-pcheck{opacity:1!important}
-.at-rank-item{cursor:grab;touch-action:none;user-select:none}
-.at-rank-item:active{cursor:grabbing}
+.at-rank-item{touch-action:none;user-select:none}
 .at-rank-item.dragging{opacity:0.35;background:#f5f5f3}
+.at-rank-grab{cursor:grab}
+.at-rank-grab:active{cursor:grabbing}
+.at-updown-btn{background:none;border:1px solid #e8e8e4;padding:4px 8px;font-family:inherit;font-size:11px;color:#bbb;cursor:pointer;transition:all 0.15s;border-radius:2px;line-height:1}
+.at-updown-btn:hover:not(:disabled){border-color:#999;color:#444}
+.at-updown-btn:disabled{opacity:0.2;cursor:default}
 .at-btn:hover{opacity:0.35}
 .at-btn-ghost:hover{opacity:0.5}
 .at-ubox:hover{border-color:#999!important}
@@ -51,7 +54,6 @@ const errStyle = { color: "#c47a5a", fontSize: 10, fontWeight: 300, marginTop: 1
 const inputStyle = { border: "none", background: "transparent", fontFamily: sans, fontSize: 14, fontWeight: 300, color: "#111", width: "100%", padding: 0 };
 const inputSmStyle = { border: "none", background: "transparent", fontFamily: sans, fontSize: 12, fontWeight: 300, color: "#999", padding: 0, textAlign: "right" };
 
-// Logo — PNG image, same height as the text it replaces
 function Logo() {
   return (
     <img src="/jedda-logo.png" alt="Jedda" style={{ height: 17, width: "auto", display: "block", filter: "invert(1)" }} />
@@ -74,8 +76,19 @@ function Wrap({ children, prog }) {
   );
 }
 
-// Photos in order 1–10, loaded from public/
 const P_ITEMS = [1,2,3,4,5,6,7,8,9,10].map(n => ({ src: `/${n}.jpg` }));
+
+// ── localStorage draft helpers ───────────────────────────────
+function draftKey(id) { return `at_draft_${id}`; }
+function saveDraft(id, state) {
+  try { localStorage.setItem(draftKey(id), JSON.stringify(state)); } catch {}
+}
+function loadDraft(id) {
+  try { const raw = localStorage.getItem(draftKey(id)); return raw ? JSON.parse(raw) : null; } catch { return null; }
+}
+function clearDraft(id) {
+  try { localStorage.removeItem(draftKey(id)); } catch {}
+}
 
 export default function AlignmentTest() {
   const applicantId = new URLSearchParams(window.location.search).get("id");
@@ -97,7 +110,7 @@ export default function AlignmentTest() {
   const [uploadProgress, setUploadProgress] = useState(null);
   const [err, setErr] = useState({});
   const [submitting, setSubmitting] = useState(false);
-  const [lightbox, setLightbox] = useState(null); // number 1–10 or null
+  const [lightbox, setLightbox] = useState(null);
 
   const fileRef = useRef(null);
   const pointerDragIdx = useRef(null);
@@ -111,6 +124,7 @@ export default function AlignmentTest() {
     return () => document.head.removeChild(st);
   }, []);
 
+  // ── Init: check if already submitted, then restore draft ──
   useEffect(() => {
     if (!applicantId) { setInitState("invalid"); return; }
     (async () => {
@@ -118,9 +132,36 @@ export default function AlignmentTest() {
       if (existing) { setInitState("already"); return; }
       const { data: applicant } = await supabase.from("applications").select("id").eq("id", applicantId).maybeSingle();
       if (!applicant) { setInitState("invalid"); return; }
+
+      // Restore draft if available
+      const draft = loadDraft(applicantId);
+      if (draft) {
+        if (draft.screen != null) setScreen(draft.screen);
+        if (draft.selected) setSelected(draft.selected);
+        if (draft.rankItems) setRankItems(draft.rankItems);
+        if (draft.q2 != null) setQ2(draft.q2);
+        if (draft.id1 != null) setId1(draft.id1);
+        if (draft.id2 != null) setId2(draft.id2);
+        if (draft.id3 != null) setId3(draft.id3);
+        if (draft.in1 != null) setIn1(draft.in1);
+        if (draft.inf1 != null) setInf1(draft.inf1);
+        if (draft.in2 != null) setIn2(draft.in2);
+        if (draft.inf2 != null) setInf2(draft.inf2);
+        if (draft.in3 != null) setIn3(draft.in3);
+        if (draft.inf3 != null) setInf3(draft.inf3);
+        if (draft.q6 != null) setQ6(draft.q6);
+        if (draft.moodLink != null) setMoodLink(draft.moodLink);
+      }
+
       setInitState("ok");
     })();
   }, [applicantId]);
+
+  // ── Auto-save draft on state changes ──────────────────────
+  useEffect(() => {
+    if (!applicantId || initState !== "ok") return;
+    saveDraft(applicantId, { screen, selected, rankItems, q2, id1, id2, id3, in1, inf1, in2, inf2, in3, inf3, q6, moodLink });
+  }, [screen, selected, rankItems, q2, id1, id2, id3, in1, inf1, in2, inf2, in3, inf3, q6, moodLink, applicantId, initState]);
 
   useEffect(() => { window.scrollTo(0, 0); }, [screen]);
 
@@ -133,6 +174,7 @@ export default function AlignmentTest() {
     setErr({});
   };
 
+  // ── Drag handlers ─────────────────────────────────────────
   const onPointerDown = useCallback((e, i) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     pointerDragIdx.current = i;
@@ -166,10 +208,21 @@ export default function AlignmentTest() {
     setDragIdx(null);
   }, []);
 
+  // ── Up/Down button handler ────────────────────────────────
+  const moveItem = useCallback((from, direction) => {
+    const to = from + direction;
+    if (to < 0 || to > 5) return;
+    setRankItems(prev => {
+      const items = [...prev];
+      const [moved] = items.splice(from, 1);
+      items.splice(to, 0, moved);
+      return items;
+    });
+  }, []);
+
   const next1 = () => { if (selected.length < 3) { setErr({ e1: true }); return; } go(2); };
   const next2 = () => { if (!q2.trim()) { setErr({ e2: true }); return; } go(3); };
   const next4 = () => { if (![id1, id2, id3].some(v => v.trim())) { setErr({ e4: true }); return; } go(5); };
-  // Q5: all 3 brand names required, all 3 "from" fields required
   const next5 = () => {
     const brands = [in1, in2, in3];
     const froms = [inf1, inf2, inf3];
@@ -220,6 +273,7 @@ export default function AlignmentTest() {
 
       await supabase.from("applications").update({ alignment_test_submitted: true }).eq("id", applicantId);
 
+      clearDraft(applicantId);
       setUploadProgress(null);
       go(8);
     } catch (e) {
@@ -232,13 +286,23 @@ export default function AlignmentTest() {
   };
 
   if (initState === "loading") return <Wrap prog={0}><div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ fontSize: 11, fontWeight: 200, color: "#ccc", letterSpacing: 2 }}>loading...</p></div></Wrap>;
-  if (initState === "invalid") return <Wrap prog={0}><div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ fontSize: 13, fontWeight: 200, color: "#999" }}>this link is no longer valid.</p></div></Wrap>;
+
+  if (initState === "invalid") return (
+    <Wrap prog={0}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+        <div style={{ width: 28, height: 1, background: "#ccc", marginBottom: 32 }} />
+        <p style={{ fontSize: 13, fontWeight: 300, marginBottom: 10 }}>we couldn't find this link.</p>
+        <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 1.9 }}>please check the link from your email or contact Jedda if you think this is a mistake.</p>
+      </div>
+    </Wrap>
+  );
+
   if (initState === "already") return (
     <Wrap prog={0}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
         <div style={{ width: 28, height: 1, background: "#ccc", marginBottom: 32 }} />
         <p style={{ fontSize: 13, fontWeight: 300, marginBottom: 10 }}>you've already submitted your alignment test.</p>
-        <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 1.9 }}>we'll be in touch soon.</p>
+        <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 1.9 }}>thank you — our team will review it carefully.</p>
       </div>
     </Wrap>
   );
@@ -256,7 +320,7 @@ export default function AlignmentTest() {
         </p>
         <div>
           <button className="at-btn" style={btn} onClick={() => go(1)}>begin →</button>
-          <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", letterSpacing: 1, marginTop: 14, display: "block" }}>7 questions · ~10 minutes</span>
+          <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", letterSpacing: 1, marginTop: 14, display: "block" }}>7 questions · around 10 minutes</span>
         </div>
       </div>
     </Wrap>
@@ -334,19 +398,39 @@ export default function AlignmentTest() {
     <Wrap prog={prog}>
       <p style={eyebrow}>03 / 07</p>
       <h2 style={titleStyle}>When making a product,<br/>what do you <em style={{ fontStyle: "italic", color: "#888" }}>prioritize most?</em></h2>
-      <p style={{ ...sub, marginBottom: 24 }}>rank from most to least important. drag to reorder.</p>
+      <p style={{ ...sub, marginBottom: 24 }}>rank from most to least important. drag to reorder, or use the arrows.</p>
       <div style={{ display: "flex", flexDirection: "column", marginBottom: 16 }}>
         {rankItems.map((text, i) => (
           <div key={text}
             className={`at-rank-item${dragIdx === i ? " dragging" : ""}`}
-            onPointerDown={e => onPointerDown(e, i)}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-            style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 0", borderBottom: "1px solid #f0f0f0", opacity: dragIdx === i ? 0.35 : 1 }}>
-            <span style={{ fontSize: 9, fontWeight: 200, color: "#ccc", letterSpacing: 2, width: 18, flexShrink: 0 }}>{String(i + 1).padStart(2, "0")}</span>
+            style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: "1px solid #f0f0f0", opacity: dragIdx === i ? 0.35 : 1 }}>
+            {/* Drag handle */}
+            <span
+              className="at-rank-grab"
+              onPointerDown={e => onPointerDown(e, i)}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+              style={{ fontSize: 9, fontWeight: 200, color: "#ccc", letterSpacing: 2, width: 18, flexShrink: 0, cursor: "grab" }}
+            >
+              {String(i + 1).padStart(2, "0")}
+            </span>
             <span style={{ fontSize: 13, fontWeight: 300, color: "#444", lineHeight: 1.5, flex: 1 }}>{text}</span>
-            <span style={{ fontSize: 11, color: "#ccc", flexShrink: 0 }}>⠿</span>
+            {/* Up/Down controls */}
+            <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+              <button
+                className="at-updown-btn"
+                disabled={i === 0}
+                onClick={() => moveItem(i, -1)}
+                aria-label="move up"
+              >↑</button>
+              <button
+                className="at-updown-btn"
+                disabled={i === rankItems.length - 1}
+                onClick={() => moveItem(i, 1)}
+                aria-label="move down"
+              >↓</button>
+            </div>
           </div>
         ))}
       </div>
@@ -402,7 +486,7 @@ export default function AlignmentTest() {
     </Wrap>
   );
 
-  // ── SCREEN 6: Dimension — hierarchy flipped ──
+  // ── SCREEN 6: Dimension ──
   if (screen === 6) return (
     <Wrap prog={prog}>
       <p style={eyebrow}>06 / 07</p>
@@ -444,7 +528,9 @@ export default function AlignmentTest() {
         value={moodLink}
         onChange={e => { setMoodLink(e.target.value); setErr({}); }}
       />
-      <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", marginTop: 8, letterSpacing: 0.5 }}>make sure it's set to public</p>
+      <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", marginTop: 8, letterSpacing: 0.5 }}>
+        make sure the link is public or accessible without login.
+      </p>
       {err.e7 && <p style={errStyle}>{err.e7}</p>}
       <div style={{ marginTop: "auto", paddingTop: 40 }}>
         <button className="at-btn-ghost" style={btnGhost} onClick={() => go(6)}>← back</button>
