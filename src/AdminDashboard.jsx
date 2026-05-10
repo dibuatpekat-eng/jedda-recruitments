@@ -5,6 +5,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const PASS = import.meta.env.VITE_ADMIN_PASSWORD || "jedda2026";
+const DUMMY_IDS = [7, 294]; // Agif test accounts — actions fire but don't advance status
 const sans = "'DM Sans', sans-serif";
 
 // ─── Scoring constants ──────────────────────────────────────
@@ -656,13 +657,35 @@ function DetailPanel({ app, onClose, onMoveBack, onReferOut }) {
 const OFFLINE_LOCATION = "Fragment Project — Jl. Ir. H. Juanda No.23, Bandung";
 const OFFLINE_MAPS_URL = "https://share.google/D3ep92gL1rmffWXYZ";
 
-function buildInterviewEmail(app, mode, dt) {
+function buildInterviewEmail(app, division, dt) {
   const firstName = app.full_name.split(" ")[0];
   const d = dt ? new Date(dt) : null;
   const dateStr = d ? d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "[date]";
   const timeStr = d ? d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "[time]";
 
-  if (mode === "offline") {
+  if (division === "design") {
+    return `Hi ${firstName},
+
+After reviewing your alignment test, we think there's something worth exploring further. We'd like to invite you for an online interview:
+
+${dateStr} at ${timeStr}
+
+Does this work for you? If not, let us know and we'll find another slot. We'll send the details once confirmed.
+
+Jedda.`;
+  } else if (division === "creative") {
+    return `Hi ${firstName},
+
+We apologize for the delayed response — we received far more applications than expected, and we wanted to make sure we reviewed each one properly.
+
+We'd like to invite you for an online interview:
+
+${dateStr} at ${timeStr}
+
+Does this work for you? If not, let us know and we'll find another slot. We'll send the details once confirmed.
+
+Jedda.`;
+  } else {
     return `Hi ${firstName},
 
 Congratulations — you've made it to the interview stage.
@@ -678,30 +701,18 @@ Please reply to confirm whether this time works for you. If it doesn't, let us k
 
 See you there,
 Jedda.`;
-  } else {
-    return `Hi ${firstName},
-
-Congratulations — you've made it to the interview stage.
-
-We received hundreds of applications, and we're glad yours stood out. Before we finalize the team, we'd like to have a conversation with you — just a casual call to get a better sense of who you are and how you'd fit into the Jedda environment.
-
-We're proposing the following time slot for our online interview:
-${dateStr} at ${timeStr}
-
-Please reply to confirm whether this works for you. If it doesn't, let us know and we'll find another slot. Once confirmed, we'll send over the meeting link.
-
-See you soon,
-Jedda.`;
   }
 }
 
 function InterviewModal({ app, onClose, onConfirm }) {
-  const [mode, setMode] = useState("offline");
+  const detectedDiv = app ? getDivision(app.position) : "retail";
+  const defaultDiv = ["design", "creative", "retail"].includes(detectedDiv) ? detectedDiv : "retail";
+  const [division, setDivision] = useState(defaultDiv);
   const [dt, setDt] = useState("");
   if (!app) return null;
 
   const preview = dt
-    ? buildInterviewEmail(app, mode, dt)
+    ? buildInterviewEmail(app, division, dt)
     : "select a date & time first.";
 
   return (
@@ -710,25 +721,26 @@ function InterviewModal({ app, onClose, onConfirm }) {
         <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 4 }}>schedule interview</p>
         <p style={{ fontSize: 11, fontWeight: 200, color: "#aaa", marginBottom: 24 }}>{app.full_name} — {app.position?.toLowerCase()}</p>
 
-        {/* Mode toggle */}
-        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>interview type</p>
+        {/* Division toggle */}
+        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>division</p>
         <div style={{ display: "flex", gap: 0, marginBottom: 24, border: "1px solid #f0f0f0" }}>
-          {["offline", "online"].map((m, i) => (
-            <button key={m} onClick={() => setMode(m)}
+          {["design", "creative", "retail"].map((d, i) => (
+            <button key={d} onClick={() => setDivision(d)}
               style={{
-                flex: 1, padding: "9px 0", border: "none", borderRight: i === 0 ? "1px solid #f0f0f0" : "none",
-                background: mode === m ? "#1a1a1a" : "#fff",
-                color: mode === m ? "#fff" : "#bbb",
+                flex: 1, padding: "9px 0", border: "none",
+                borderRight: i < 2 ? "1px solid #f0f0f0" : "none",
+                background: division === d ? "#1a1a1a" : "#fff",
+                color: division === d ? "#fff" : "#bbb",
                 fontFamily: sans, fontSize: 11, fontWeight: 300, cursor: "pointer",
                 transition: "all 0.15s", letterSpacing: 0.5
               }}>
-              {m}
+              {d}
             </button>
           ))}
         </div>
 
-        {/* Offline location info */}
-        {mode === "offline" && (
+        {/* Retail location info */}
+        {division === "retail" && (
           <div style={{ background: "#fafafa", border: "1px solid #f0f0f0", padding: "12px 14px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, textTransform: "uppercase", color: "#bbb", marginBottom: 4 }}>location</p>
@@ -752,7 +764,7 @@ function InterviewModal({ app, onClose, onConfirm }) {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button onClick={onClose} style={{ background: "none", border: "none", borderBottom: "1px solid #ddd", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#999", cursor: "pointer" }}>cancel</button>
-          <button onClick={() => { if (!dt) return; onConfirm(dt, mode); }} style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer", opacity: dt ? 1 : 0.3 }}>send email →</button>
+          <button onClick={() => { if (!dt) return; onConfirm(dt, division); }} style={{ background: "none", border: "none", borderBottom: "1px solid #1a1a1a", paddingBottom: 2, fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#1a1a1a", cursor: "pointer", opacity: dt ? 1 : 0.3 }}>send email →</button>
         </div>
       </div>
     </div>
@@ -1058,7 +1070,8 @@ function InterviewPage({ apps, updateStatus, showToast }) {
             const d = a.interview_date ? new Date(a.interview_date) : null;
             const dateLabel = d ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—";
             const resendEmail = () => {
-              const body = buildInterviewEmail(a, a.interview_mode || "offline", a.interview_date);
+              const division = a.interview_mode || getDivision(a.position) || "retail";
+              const body = buildInterviewEmail(a, division, a.interview_date);
               window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(a.email)}&su=${encodeURIComponent(a.full_name.split(" ")[0])}%2C%20we%27d%20like%20to%20meet%20you.&body=${encodeURIComponent(body)}`, "_blank");
               showToast("email reopened ✓");
             };
@@ -1243,6 +1256,7 @@ export default function AdminDashboard() {
   }, [authed]);
 
   const updateStatus = async (id, status, extra = {}) => {
+    if (DUMMY_IDS.includes(id)) return; // dummy account — skip real update
     const update = { status, ...extra };
     await supabase.from("applications").update(update).eq("id", id);
     setApps(prev => prev.map(a => a.id === id ? { ...a, ...update } : a));
