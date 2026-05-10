@@ -1158,7 +1158,7 @@ function FinalistPage({ apps, setInterviewApp, setPanelApp }) {
   );
 }
 
-function InterviewPage({ apps, updateStatus, showToast }) {
+function InterviewPage({ apps, updateStatus, showToast, setResendInterviewApp }) {
   const [div, setDiv] = useState("all");
   const all = [...apps.filter(a => a.status === "interview")].sort((a, b) => {
     const ta = a.interview_date ? new Date(a.interview_date).getTime() : Infinity;
@@ -1206,7 +1206,7 @@ function InterviewPage({ apps, updateStatus, showToast }) {
   );
 }
 
-function FinalTeamPage({ apps, setPanelApp, setAcceptanceApp, setOfferApp }) {
+function FinalTeamPage({ apps, setPanelApp, setAcceptanceApp, setOfferApp, setResendOfferApp }) {
   const [div, setDiv] = useState("all");
   const all = apps.filter(a => a.status === "the final team");
   const filtered = all.filter(a => div === "all" || getDivision(a.position) === div);
@@ -1543,8 +1543,8 @@ export default function AdminDashboard() {
       case "shortlisted":  return <ShortlistedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
       case "evaluating":   return <EvaluatingPage apps={apps} setEvaluatingApp={setEvaluatingApp} showToast={showToast} />;
       case "finalist":     return <FinalistPage apps={apps} setInterviewApp={setInterviewApp} setPanelApp={setPanelApp} />;
-      case "interview":    return <InterviewPage apps={apps} updateStatus={updateStatus} showToast={showToast} />;
-      case "thefinalteam": return <FinalTeamPage apps={apps} setPanelApp={setPanelApp} setAcceptanceApp={setAcceptanceApp} setOfferApp={setOfferApp} />;
+      case "interview":    return <InterviewPage apps={apps} updateStatus={updateStatus} showToast={showToast} setResendInterviewApp={setResendInterviewApp} />;
+      case "thefinalteam": return <FinalTeamPage apps={apps} setPanelApp={setPanelApp} setAcceptanceApp={setAcceptanceApp} setOfferApp={setOfferApp} setResendOfferApp={setResendOfferApp} />;
       case "rejected":     return <RejectedPage apps={apps} updateStatus={updateStatus} showToast={showToast} setPanelApp={setPanelApp} />;
       default: return null;
     }
@@ -1596,7 +1596,7 @@ export default function AdminDashboard() {
             const body = buildInterviewEmail(interviewApp, mode, dt);
             const interviewSubject = mode === "retail"
               ? `${interviewApp.full_name.split(" ")[0]}, we'd like to meet you.`
-              : `we'd like to talk — jedda`;
+              : `We'd like to talk — Jedda`;
             window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(interviewApp.email)}&su=${encodeURIComponent(interviewSubject)}&body=${encodeURIComponent(body)}`, "_blank");
             updateStatus(interviewApp.id, "interview", { interview_date: dt, interview_mode: mode });
             setInterviewApp(null);
@@ -1613,7 +1613,7 @@ export default function AdminDashboard() {
             const body = buildInterviewEmail(resendInterviewApp, division, dt);
             const subject = division === "retail"
               ? `${resendInterviewApp.full_name.split(" ")[0]}, we'd like to meet you.`
-              : `we'd like to talk — jedda`;
+              : `We'd like to talk — Jedda`;
             window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(resendInterviewApp.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank");
             updateStatus(resendInterviewApp.id, "interview", { interview_mode: division, interview_date: dt });
             setResendInterviewApp(null);
