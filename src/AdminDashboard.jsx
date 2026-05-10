@@ -1484,12 +1484,15 @@ export default function AdminDashboard() {
           onConfirm={({ sendMode, ptSalary, ftSalary, ftSalaryProbation, startDate, emailBody }) => {
             window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(offerApp.email)}&su=${encodeURIComponent("An Offer from Jedda")}&body=${encodeURIComponent(emailBody)}`, "_blank");
             const workType = sendMode === "pt" ? "Part-Time" : sendMode === "ft" ? "Full-Time" : "Part-Time / Full-Time";
+            const d = new Date(startDate);
+            const formattedDate = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
             updateStatus(offerApp.id, "the final team", {
               offer_sent: true,
               offer_work_type: workType,
-              offer_salary: ftSalary || ptSalary,
-              offer_salary_probation: ftSalaryProbation,
-              offer_start_date: startDate,
+              offer_salary_pt: ptSalary || "",
+              offer_salary: ftSalary || "",
+              offer_salary_probation: ftSalaryProbation || "",
+              offer_start_date: formattedDate,
             });
             setOfferApp(null);
             showToast("offer sent ✓");

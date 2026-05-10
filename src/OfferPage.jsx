@@ -8,144 +8,233 @@ const supabase = createClient(
 
 const sans = "'DM Sans', sans-serif";
 
-const RESP_PT = [
-  "Assist customers in-store — understanding their needs, guiding product selection, and ensuring a considered shopping experience.",
-  "Maintain deep familiarity with all current Jedda products, materials, and collection context.",
-  "Uphold store visual standards — display arrangement, cleanliness, and overall presentation.",
-  "Manage in-store inventory: receiving, organizing, and conducting regular stock checks.",
-  "Handle customer inquiries via WhatsApp promptly and in line with the brand's tone.",
-  "Maintain and update the customer database, tracking purchase history and preferences to support future clienteling.",
+const ZONES_PT = [
+  { icon: "store", title: "in-store", sub: "Your home base", items: ["Welcome and assist customers", "Guide product selection", "Maintain display & visual standards", "Stock & inventory management"] },
+  { icon: "comms", title: "customer comms", sub: "WhatsApp channel", items: ["Handle customer inquiries", "Reply in Jedda's tone", "Follow up when needed"] },
+  { icon: "database", title: "customer database", sub: "Know your regulars", items: ["Log purchase history", "Track preferences", "Lay groundwork for membership tiers"] },
 ];
 
-const RESP_FT = [
-  "Assist customers in-store — understanding their needs, guiding product selection, and ensuring a considered shopping experience.",
-  "Maintain deep familiarity with all current Jedda products, materials, and collection context.",
-  "Uphold store visual standards — display arrangement, cleanliness, and overall presentation.",
-  "Manage in-store inventory: receiving, organizing, and conducting regular stock checks.",
-  "Handle all customer communication across channels — WhatsApp, Instagram DMs, and website inquiries — promptly and in line with the brand's tone.",
-  "Coordinate and process incoming orders from the website, liaising with relevant parties to ensure smooth fulfillment.",
-  "Maintain and update the customer database, tracking purchase history, preferences, and tier status to support personalized clienteling and the upcoming membership program.",
+const ZONES_FT = [
+  { icon: "store", title: "in-store", sub: "3 days / week", items: ["Welcome and assist customers", "Guide product selection", "Maintain display & visual standards", "Stock & inventory management"] },
+  { icon: "comms", title: "digital comms", sub: "WhatsApp · Instagram DM", items: ["Handle all inbound customer messages", "Reply in Jedda's tone across channels", "Coordinate with the team when needed"] },
+  { icon: "orders", title: "website orders", sub: "Order coordination", items: ["Process incoming web orders", "Coordinate with the distribution team", "Keep customers informed on status"] },
+  { icon: "database", title: "customer database", sub: "Know your VIPs", items: ["Log purchase history & preferences", "Maintain customer profiles", "Prepare for membership & tier rollout"] },
 ];
 
-function getResponsibilities(workType) {
-  if (!workType) return [];
-  return workType.toLowerCase().includes("full") ? RESP_FT : RESP_PT;
+const CONN_PT = [
+  { node: "customers", label: "walk-ins · WhatsApp", dir: "in" },
+  { node: "store team", label: "day-to-day coordination", dir: "out" },
+];
+
+const CONN_FT = [
+  { node: "customers", label: "store · DM · WhatsApp · web", dir: "in" },
+  { node: "distribution", label: "order fulfillment", dir: "out" },
+  { node: "store team", label: "day-to-day", dir: "out" },
+];
+
+const ICON_SVG = {
+  store: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="16" height="10" rx="1"/><path d="M2 8l2-5h12l2 5"/><path d="M7 18v-5h6v5"/></svg>`,
+  comms: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6l-4 3V5a1 1 0 0 1 1-1z"/></svg>`,
+  orders: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="1"/><path d="M7 7h6M7 10h6M7 13h4"/></svg>`,
+  database: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="10" cy="5" rx="7" ry="2.5"/><path d="M3 5v5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V5"/><path d="M3 10v5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-5"/></svg>`,
+};
+
+function getMode(workType = "") {
+  const w = workType.toLowerCase();
+  if (w.includes("/")) return "both";
+  if (w.includes("full")) return "ft";
+  return "pt";
 }
 
-function getDetails(app) {
-  const isFull = app.offer_work_type?.toLowerCase().includes("full");
-  const isBoth = app.offer_work_type?.toLowerCase().includes("/");
-  const rows = [
-    ["Position", isFull ? "Sales & Customer Associate" : "Sales Associate"],
-    ["Employment Type", app.offer_work_type || "—"],
-    ["Schedule", isFull
-      ? "3 full days + 1 half day in-store per week (flexible, except Wednesdays). Customer operations daily during working hours."
-      : "Minimum 3 days per week (flexible, except Wednesdays)"],
-    ["Start Date", app.offer_start_date || "—"],
-    ["Probation Period", isFull ? "2 months" : "None"],
-  ];
-  if (isFull || isBoth) {
-    if (app.offer_salary_probation) rows.push(["Salary During Probation", `IDR ${app.offer_salary_probation} / month`]);
-    if (app.offer_salary) rows.push(["Salary After Probation", `IDR ${app.offer_salary} / month`]);
-  }
-  if (!isFull) {
-    if (app.offer_salary) rows.push(["Salary", `IDR ${app.offer_salary} / month`]);
-  }
-  return rows;
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;300;400&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#f5f5f3;font-family:'DM Sans',sans-serif;color:#1a1a1a;min-height:100%}
+.topbar{background:#fff;border-bottom:1px solid #ebebeb;position:sticky;top:0;z-index:100}
+.topbar-inner{max-width:720px;margin:0 auto;padding:0 48px;display:flex;justify-content:space-between;align-items:center}
+.doc{max-width:720px;margin:0 auto;padding:0 48px 80px}
+.section{margin-bottom:44px}
+.eyebrow{font-size:8px;font-weight:300;letter-spacing:3px;color:#bbb;margin-bottom:10px;text-transform:uppercase}
+.rule-dark{height:1px;background:#1a1a1a;margin-bottom:0}
+.rule-light{height:1px;background:#ebebeb}
+.detail-grid{border-top:1px solid #f0f0f0}
+.detail-row{display:grid;grid-template-columns:160px 1fr;gap:16px;padding:12px 0;border-bottom:1px solid #f0f0f0}
+.detail-label{font-size:8px;font-weight:300;color:#aaa;letter-spacing:1.5px;padding-top:2px;text-transform:uppercase}
+.detail-value{font-size:12px;font-weight:300;color:#1a1a1a;line-height:1.7}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:20px 0 12px}
+.day-cell{border-radius:3px;padding:12px 4px;text-align:center}
+.day-name{font-size:8px;font-weight:300;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase}
+.schedule-note{font-size:10px;font-weight:200;color:#aaa;line-height:1.8;margin-top:4px}
+.zones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:20px 0 0}
+.zones.three{grid-template-columns:repeat(3,1fr)}
+.zone-card{border:1px solid #ebebeb;border-radius:3px;padding:20px 22px;cursor:pointer;transition:border-color 0.15s,background 0.15s}
+.zone-card:hover{border-color:#ccc}
+.zone-card.open{border-color:#1a1a1a;background:#fafafa}
+.zone-icon{color:#bbb;margin-bottom:14px;display:block;line-height:1;transition:color 0.15s}
+.zone-card.open .zone-icon{color:#1a1a1a}
+.zone-title{font-size:12px;font-weight:400;color:#1a1a1a;margin-bottom:4px}
+.zone-sub{font-size:9px;font-weight:200;color:#bbb;letter-spacing:0.5px}
+.zone-items{margin-top:14px;border-top:1px solid #f0f0f0;padding-top:14px}
+.zone-item{font-size:11px;font-weight:200;color:#555;line-height:1.9;display:flex;gap:10px;margin-bottom:2px}
+.zone-item::before{content:"—";color:#ccc;flex-shrink:0}
+.conn-box{margin-top:16px;padding:20px 24px;background:#fafafa;border:1px solid #f0f0f0;border-radius:3px}
+.conn-node{font-size:10px;font-weight:300;color:#1a1a1a;padding:7px 14px;border:1px solid #ddd;background:#fff;border-radius:2px;white-space:nowrap}
+.conn-node.you{background:#1a1a1a;color:#fff;border-color:#1a1a1a;font-weight:400}
+.conn-line{flex:1;height:1px;background:#e0e0e0;min-width:16px}
+.conn-arrow{font-size:9px;color:#ccc;padding:0 3px}
+canvas{display:block;width:100%;height:100px;background:#fafafa;border:1px solid #e8e8e8;border-bottom:1.5px solid #1a1a1a;cursor:crosshair;touch-action:none;border-radius:2px 2px 0 0}
+.btn-accept{background:#e8e8e8;border:none;color:#bbb;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:300;padding:12px 28px;cursor:default;letter-spacing:1.5px;transition:all 0.2s;border-radius:2px}
+.btn-accept.on{background:#1a1a1a;color:#fff;cursor:pointer}
+.btn-print{background:none;border:none;border-bottom:1px solid #ddd;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:300;color:#bbb;cursor:pointer;padding-bottom:2px;letter-spacing:1px}
+.cta-row{display:flex;align-items:center;gap:24px;border-top:1px solid #f0f0f0;padding-top:28px;flex-wrap:wrap}
+@media print{
+  .topbar,.cta-row,.no-print,.btn-print{display:none!important}
+  .print-show{display:block!important}
+  .doc{padding:0;max-width:100%}
+  body,html{background:#fff}
 }
+`;
 
-// ─── Signature Canvas ──────────────────────────────────────────
-function SignatureCanvas({ onSign }) {
-  const canvasRef = useRef(null);
-  const drawing = useRef(false);
-  const [signed, setSigned] = useState(false);
-
-  const getPos = (e, canvas) => {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    if (e.touches) {
-      return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
-    }
-    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
-  };
-
-  const start = (e) => {
-    e.preventDefault();
-    drawing.current = true;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const pos = getPos(e, canvas);
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-  };
-
-  const draw = (e) => {
-    e.preventDefault();
-    if (!drawing.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const pos = getPos(e, canvas);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = "#1a1a1a";
-    ctx.lineWidth = 1.8;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.stroke();
-    setSigned(true);
-    onSign(null);
-  };
-
-  const stop = (e) => {
-    e?.preventDefault();
-    if (!drawing.current) return;
-    drawing.current = false;
-    onSign(canvasRef.current.toDataURL("image/png"));
-  };
-
-  const clear = () => {
-    const canvas = canvasRef.current;
-    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
-    setSigned(false);
-    onSign(null);
-  };
-
+function WeekSchedule({ mode }) {
+  const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const closed = (n) => n === "Wed";
   return (
-    <div>
-      <canvas ref={canvasRef} width={560} height={120}
-        onMouseDown={start} onMouseMove={draw} onMouseUp={stop} onMouseLeave={stop}
-        onTouchStart={start} onTouchMove={draw} onTouchEnd={stop}
-        style={{ width: "100%", height: 120, border: "1px solid #e8e8e8", borderBottom: "1px solid #1a1a1a", display: "block", cursor: "crosshair", touchAction: "none", background: "#fafafa" }}
-      />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-        <span style={{ fontSize: 10, fontWeight: 200, color: "#bbb", fontFamily: sans }}>
-          {signed ? "signature captured" : "draw your signature above"}
-        </span>
-        {signed && (
-          <button onClick={clear} style={{ background: "none", border: "none", fontFamily: sans, fontSize: 10, fontWeight: 300, color: "#bbb", cursor: "pointer", borderBottom: "1px solid #e8e8e8", paddingBottom: 1 }}>
-            clear
-          </button>
-        )}
+    <div style={{ marginTop: 20 }}>
+      <div className="week-grid">
+        {days.map(n => (
+          <div key={n} className="day-cell" style={{ border: `1px ${closed(n) ? "solid #f0f0f0" : "dashed #e0e0e0"}`, background: closed(n) ? "#fff" : "#fafafa" }}>
+            <p className="day-name" style={{ color: closed(n) ? "#ddd" : "#aaa" }}>{n}</p>
+            <p style={{ fontSize: 8, fontWeight: 200, color: closed(n) ? "#e8e8e8" : "#ccc" }}>{closed(n) ? "closed" : mode === "pt" ? "any 3" : "pick"}</p>
+          </div>
+        ))}
+      </div>
+      {mode === "ft" && (
+        <div style={{ margin: "14px 0 10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <div style={{ padding: "12px 14px", border: "1px solid #ebebeb", borderRadius: 3 }}>
+            <p style={{ fontSize: 8, fontWeight: 300, letterSpacing: 1.5, color: "#bbb", marginBottom: 4, textTransform: "uppercase" }}>store shifts</p>
+            <p style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a" }}>3 full days + 1 half day</p>
+            <p style={{ fontSize: 10, fontWeight: 200, color: "#aaa", marginTop: 2 }}>in-store</p>
+          </div>
+          <div style={{ padding: "12px 14px", border: "1px solid #ebebeb", borderRadius: 3 }}>
+            <p style={{ fontSize: 8, fontWeight: 300, letterSpacing: 1.5, color: "#bbb", marginBottom: 4, textTransform: "uppercase" }}>daily operations</p>
+            <p style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a" }}>every working day</p>
+            <p style={{ fontSize: 10, fontWeight: 200, color: "#aaa", marginTop: 2 }}>comms · orders · 09.00–17.00</p>
+          </div>
+        </div>
+      )}
+      <p className="schedule-note">
+        {mode === "pt"
+          ? "You choose any 3 days per week — consistent days, agreed with the team. Store is closed on Wednesdays."
+          : "You choose 3 full days + 1 half day for store shifts — any days except Wednesday. Customer operations run daily."}
+      </p>
+    </div>
+  );
+}
+
+function ZoneCard({ zone, open, onToggle }) {
+  return (
+    <div className={`zone-card${open ? " open" : ""}`} onClick={onToggle}>
+      <span className="zone-icon" dangerouslySetInnerHTML={{ __html: ICON_SVG[zone.icon] }} />
+      <p className="zone-title">{zone.title}</p>
+      <p className="zone-sub">{zone.sub}</p>
+      {open && (
+        <div className="zone-items">
+          {zone.items.map((it, i) => <div key={i} className="zone-item">{it}</div>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConnDiagram({ conn }) {
+  const ins = conn.filter(c => c.dir === "in");
+  const outs = conn.filter(c => c.dir === "out");
+  return (
+    <div className="conn-box">
+      <p style={{ fontSize: 7, fontWeight: 300, letterSpacing: 3, color: "#ccc", marginBottom: 18, textTransform: "uppercase" }}>who you work with</p>
+      <div style={{ display: "flex", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 110 }}>
+          {ins.map((c, i) => (
+            <div key={i}>
+              <div className="conn-node">{c.node}</div>
+              <p style={{ fontSize: 8, fontWeight: 200, color: "#bbb", marginTop: 4 }}>{c.label}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: `${ins.length > 1 ? 16 : 6}px 8px` }}>
+          {ins.map((_, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", height: ins.length > 1 ? 44 : "auto" }}>
+              <div className="conn-line" />
+              <span className="conn-arrow">→</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", padding: "6px 0" }}>
+          <div className="conn-node you">you</div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: `${outs.length > 1 ? 16 : 6}px 8px` }}>
+          {outs.map((_, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", height: outs.length > 1 ? 44 : "auto" }}>
+              <span className="conn-arrow">→</span>
+              <div className="conn-line" />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 110 }}>
+          {outs.map((c, i) => (
+            <div key={i}>
+              <div className="conn-node">{c.node}</div>
+              <p style={{ fontSize: 8, fontWeight: 200, color: "#bbb", marginTop: 4 }}>{c.label}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-const PRINT_CSS = `
-@media print {
-  .no-print { display: none !important; }
-  .print-only { display: block !important; }
-  body { background: #fff !important; }
-  .offer-wrap { background: #fff !important; padding: 0 !important; }
+function SigCanvas({ onSign, onClear }) {
+  const ref = useRef(null);
+  const drawing = useRef(false);
+  const [signed, setSigned] = useState(false);
+
+  const getPos = (e) => {
+    const rect = ref.current.getBoundingClientRect();
+    const sx = ref.current.width / rect.width, sy = ref.current.height / rect.height;
+    if (e.touches) return { x: (e.touches[0].clientX - rect.left) * sx, y: (e.touches[0].clientY - rect.top) * sy };
+    return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
+  };
+  const start = e => { e.preventDefault(); drawing.current = true; const p = getPos(e); const ctx = ref.current.getContext("2d"); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const draw = e => {
+    e.preventDefault(); if (!drawing.current) return;
+    const p = getPos(e); const ctx = ref.current.getContext("2d");
+    ctx.lineTo(p.x, p.y); ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 1.8; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.stroke();
+    if (!signed) { setSigned(true); onSign(null); }
+  };
+  const stop = e => { e?.preventDefault(); if (!drawing.current) return; drawing.current = false; onSign(ref.current.toDataURL("image/png")); };
+  const clear = () => { ref.current.getContext("2d").clearRect(0, 0, ref.current.width, ref.current.height); setSigned(false); onClear(); };
+
+  return (
+    <div>
+      <canvas ref={ref} width={560} height={100}
+        onMouseDown={start} onMouseMove={draw} onMouseUp={stop} onMouseLeave={stop}
+        onTouchStart={start} onTouchMove={draw} onTouchEnd={stop}
+      />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+        <span style={{ fontSize: 9, fontWeight: 200, color: "#bbb" }}>{signed ? "signature captured" : "draw your signature above"}</span>
+        {signed && <button onClick={clear} style={{ background: "none", border: "none", borderBottom: "1px solid #e0e0e0", fontFamily: sans, fontSize: 9, fontWeight: 300, color: "#bbb", cursor: "pointer", paddingBottom: 1 }}>clear</button>}
+      </div>
+    </div>
+  );
 }
-@page { margin: 18mm 20mm; }
-`;
 
 export default function OfferPage() {
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [phase, setPhase] = useState("offer");
+  const [activeMode, setActiveMode] = useState(null);
+  const [openZone, setOpenZone] = useState(null);
   const [signature, setSignature] = useState(null);
   const [sigDataUrl, setSigDataUrl] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -155,13 +244,7 @@ export default function OfferPage() {
 
   useEffect(() => {
     const style = document.createElement("style");
-    style.textContent = `
-      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;300;400&display=swap');
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { background: #f7f7f5; font-family: 'DM Sans', sans-serif; }
-      .print-only { display: none; }
-      ${PRINT_CSS}
-    `;
+    style.textContent = CSS;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
@@ -173,7 +256,7 @@ export default function OfferPage() {
         if (err || !data) { setError("Offer not found."); }
         else if (data.offer_accepted_at) { setPhase("accepted"); setApp(data); }
         else if (!data.offer_sent) { setError("This offer is not available yet."); }
-        else { setApp(data); }
+        else { setApp(data); const m = getMode(data.offer_work_type); setActiveMode(m === "both" ? "pt" : m); }
         setLoading(false);
       });
   }, [id]);
@@ -181,172 +264,202 @@ export default function OfferPage() {
   const handleAccept = async () => {
     if (!signature) return;
     setSubmitting(true);
-    setSubmitErr("");
     try {
       const now = new Date().toISOString();
-      const { error: err } = await supabase.from("applications").update({
-        offer_accepted_at: now,
-        offer_signature: signature,
-      }).eq("id", id);
+      const { error: err } = await supabase.from("applications").update({ offer_accepted_at: now, offer_signature: signature }).eq("id", id);
       if (err) throw err;
       setSigDataUrl(signature);
       setApp(prev => ({ ...prev, offer_accepted_at: now }));
       setPhase("accepted");
-    } catch (e) {
-      setSubmitErr("Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { setSubmitErr("Something went wrong. Please try again."); }
+    finally { setSubmitting(false); }
   };
 
-  if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans }}>
-      <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb", letterSpacing: 2 }}>loading...</p>
-    </div>
-  );
+  if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans }}><p style={{ fontSize: 11, fontWeight: 200, color: "#bbb", letterSpacing: 2 }}>loading...</p></div>;
+  if (error) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans }}><p style={{ fontSize: 11, fontWeight: 300, color: "#bbb" }}>{error}</p></div>;
 
-  if (error) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: sans }}>
-      <p style={{ fontSize: 11, fontWeight: 300, color: "#bbb" }}>{error}</p>
-    </div>
-  );
-
+  const rawMode = getMode(app.offer_work_type);
+  const isBoth = rawMode === "both";
+  const displayMode = isBoth ? activeMode : rawMode;
   const firstName = app.full_name.split(" ")[0];
-  const isFull = app.offer_work_type?.toLowerCase().includes("full");
-  const roleTitle = isFull ? "Sales & Customer Associate" : "Sales Associate";
-  const details = getDetails(app);
-  const responsibilities = getResponsibilities(app.offer_work_type);
   const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  const acceptedDate = app.offer_accepted_at
-    ? new Date(app.offer_accepted_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
-    : today;
+  const acceptedDate = app.offer_accepted_at ? new Date(app.offer_accepted_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : today;
+  const roleTitle = displayMode === "ft" ? "Sales & Customer Associate" : "Sales Associate";
 
-  // ── OFFER DOC (shared between offer + accepted phase for print) ──
-  const OfferDoc = () => (
-    <div className="offer-wrap" style={{ maxWidth: 640, margin: "0 auto", background: "#fff" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 6 }}>
-        <p style={{ fontSize: 10, fontWeight: 400, letterSpacing: 5, color: "#1a1a1a" }}>JEDDA</p>
-        <p style={{ fontSize: 9, fontWeight: 200, color: "#bbb" }}>{acceptedDate}</p>
-      </div>
-      <div style={{ height: 1, background: "#1a1a1a", marginBottom: 32 }} />
+  const getDetails = (m) => {
+    const rows = [];
+    if (m === "ft") {
+      rows.push(["position", "Sales & Customer Associate"]);
+      rows.push(["employment type", "Full-Time"]);
+      rows.push(["start date", app.offer_start_date || "—"]);
+      rows.push(["probation period", "2 months"]);
+      if (app.offer_salary_probation) rows.push(["salary during probation", `IDR ${app.offer_salary_probation} / month`]);
+      if (app.offer_salary) rows.push(["salary after probation", `IDR ${app.offer_salary} / month`]);
+    } else {
+      rows.push(["position", "Sales Associate"]);
+      rows.push(["employment type", "Part-Time"]);
+      rows.push(["start date", app.offer_start_date || "—"]);
+      rows.push(["probation period", "None"]);
+      const ptSal = app.offer_salary_pt || app.offer_salary;
+      if (ptSal) rows.push(["salary", `IDR ${ptSal} / month`]);
+    }
+    return rows;
+  };
 
-      <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, color: "#bbb", marginBottom: 8 }}>JOB OFFER</p>
-      <p style={{ fontSize: 24, fontWeight: 300, color: "#1a1a1a", marginBottom: 4 }}>{roleTitle}</p>
-      <div style={{ height: 1, background: "#ebebeb", marginBottom: 28 }} />
+  const zones = displayMode === "ft" ? ZONES_FT : ZONES_PT;
+  const conn = displayMode === "ft" ? CONN_FT : CONN_PT;
 
-      <p style={{ fontSize: 13, fontWeight: 300, marginBottom: 12, color: "#1a1a1a" }}>Dear {firstName},</p>
-      <p style={{ fontSize: 12, fontWeight: 200, color: "#666", lineHeight: 1.9, marginBottom: 36 }}>
-        We're pleased to offer you a position at Jedda. After our conversation, we're confident you'd bring the right energy and capability to the role — and we'd love to welcome you to the team.
-      </p>
-
-      <Section label="Offer Details">
-        {details.map(([lbl, val]) => <DetailRow key={lbl} label={lbl} value={val} />)}
-      </Section>
-
-      <Section label="Responsibilities">
-        {responsibilities.map((r, i) => (
-          <div key={i} style={{ display: "flex", gap: 14, padding: "10px 0", borderBottom: "1px solid #f0f0f0" }}>
-            <span style={{ fontSize: 10, color: "#ccc", flexShrink: 0, paddingTop: 1 }}>—</span>
-            <p style={{ fontSize: 12, fontWeight: 200, color: "#555", lineHeight: 1.8 }}>{r}</p>
-          </div>
-        ))}
-      </Section>
-
-      <div style={{ height: 1, background: "#ebebeb", margin: "32px 0 24px" }} />
-      <p style={{ fontSize: 12, fontWeight: 200, color: "#666", lineHeight: 1.9, marginBottom: 40 }}>
-        Please review this offer carefully. If you'd like to accept, sign below — your digital signature will be recorded along with the timestamp of your acceptance.
-      </p>
-
-      {/* Signature section */}
-      <div style={{ marginBottom: 40 }}>
-        <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 2, color: "#bbb", marginBottom: 12 }}>YOUR SIGNATURE</p>
-        {phase === "offer" ? (
-          <div style={{ maxWidth: 340 }}>
-            <SignatureCanvas onSign={setSignature} />
-            <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", marginTop: 8 }}>{app.full_name}</p>
-          </div>
-        ) : (
-          <div style={{ maxWidth: 340 }}>
-            {sigDataUrl
-              ? <img src={sigDataUrl} alt="signature" style={{ width: "100%", height: 80, objectFit: "contain", objectPosition: "left", borderBottom: "1px solid #1a1a1a", background: "#fafafa" }} />
-              : <div style={{ height: 1, background: "#1a1a1a", marginBottom: 10 }} />
-            }
-            <p style={{ fontSize: 10, fontWeight: 300, color: "#1a1a1a", marginTop: 8 }}>{app.full_name}</p>
-            <p style={{ fontSize: 9, fontWeight: 200, color: "#bbb", marginTop: 3 }}>Signed {acceptedDate}</p>
-          </div>
-        )}
-      </div>
-
-      <div style={{ marginTop: 60, borderTop: "1px solid #f0f0f0", paddingTop: 16, textAlign: "center" }}>
-        <p style={{ fontSize: 9, fontWeight: 200, color: "#ccc", letterSpacing: 2 }}>
-          CONFIDENTIAL — PLEASE DO NOT SHARE OR DISTRIBUTE
-        </p>
-      </div>
-    </div>
-  );
-
-  // ── ACCEPTED screen ──────────────────────────────────────────
+  // ── ACCEPTED ─────────────────────────────────────────────
   if (phase === "accepted") return (
     <div style={{ fontFamily: sans }}>
-      {/* Screen view - no-print */}
-      <div className="no-print" style={{ minHeight: "100vh", background: "#f7f7f5", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, flexDirection: "column" }}>
+      <div className="no-print" style={{ minHeight: "100vh", background: "#f5f5f3", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <div style={{ textAlign: "center", maxWidth: 360 }}>
-          <p style={{ fontSize: 10, letterSpacing: 4, color: "#bbb", marginBottom: 28 }}>JEDDA</p>
+          <p style={{ fontSize: 10, letterSpacing: 5, color: "#bbb", marginBottom: 28, fontWeight: 400 }}>JEDDA</p>
           <div style={{ width: 32, height: 1, background: "#ddd", margin: "0 auto 32px" }} />
           <p style={{ fontSize: 18, fontWeight: 300, marginBottom: 12 }}>You're in.</p>
           <p style={{ fontSize: 12, fontWeight: 200, color: "#999", lineHeight: 2, maxWidth: 300, margin: "0 auto 40px" }}>
             Thanks for signing. We've received your acceptance and will reach out soon with everything you need for your first day.
           </p>
-          <button onClick={() => window.print()}
-            style={{ background: "none", border: "none", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#aaa", cursor: "pointer", borderBottom: "1px solid #ddd", paddingBottom: 2, letterSpacing: 1 }}>
-            save a copy →
-          </button>
+          <button onClick={() => window.print()} className="btn-print">save a copy →</button>
         </div>
       </div>
-      {/* Print view - shows full offer doc */}
-      <div className="print-only" style={{ padding: "0 40px" }}>
-        <OfferDoc />
+      {/* Print doc */}
+      <div className="print-show" style={{ display: "none" }}>
+        <div className="doc" style={{ padding: "32px 0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <p style={{ fontSize: 10, fontWeight: 400, letterSpacing: 5 }}>JEDDA</p>
+            <p style={{ fontSize: 9, fontWeight: 200, color: "#bbb" }}>{acceptedDate}</p>
+          </div>
+          <div className="rule-dark" style={{ marginBottom: 24 }} />
+          <p className="eyebrow">job offer</p>
+          <p style={{ fontSize: 22, fontWeight: 300, marginBottom: 4 }}>{roleTitle}</p>
+          <div className="rule-light" style={{ marginBottom: 24 }} />
+          <p style={{ fontSize: 13, fontWeight: 300, marginBottom: 10 }}>Dear {firstName},</p>
+          <p style={{ fontSize: 12, fontWeight: 200, color: "#666", lineHeight: 1.9, marginBottom: 24 }}>
+            We're pleased to offer you a position at Jedda. After our conversation, we're confident you'd bring the right energy and capability to the role — and we'd love to welcome you to the team.
+          </p>
+          <p className="eyebrow">offer details</p>
+          <div className="rule-dark" style={{ marginBottom: 4 }} />
+          <div className="detail-grid">
+            {getDetails(rawMode === "both" ? "pt" : rawMode).map(([l, v]) => (
+              <div key={l} className="detail-row"><p className="detail-label">{l}</p><p className="detail-value">{v}</p></div>
+            ))}
+          </div>
+          <div style={{ marginTop: 32 }}>
+            <p style={{ fontSize: 8, fontWeight: 300, color: "#bbb", marginBottom: 8, letterSpacing: 2, textTransform: "uppercase" }}>your signature</p>
+            {sigDataUrl && <img src={sigDataUrl} alt="signature" style={{ height: 80, objectFit: "contain", objectPosition: "left", borderBottom: "1px solid #1a1a1a" }} />}
+            <p style={{ fontSize: 11, fontWeight: 300, marginTop: 8 }}>{app.full_name}</p>
+            <p style={{ fontSize: 9, fontWeight: 200, color: "#bbb", marginTop: 3 }}>Signed {acceptedDate}</p>
+          </div>
+        </div>
       </div>
     </div>
   );
 
-  // ── OFFER page ───────────────────────────────────────────────
+  // ── OFFER ────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: "#f7f7f5", fontFamily: sans, padding: "40px 24px 80px" }}>
-      <OfferDoc />
-      <div className="no-print" style={{ maxWidth: 640, margin: "0 auto", borderTop: "1px solid #f0f0f0", paddingTop: 28, marginTop: 8, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
-        {submitErr && <p style={{ fontSize: 11, color: "#c47a5a", fontWeight: 300 }}>{submitErr}</p>}
-        {!signature && <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>please sign above to accept</p>}
-        <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-          <button onClick={handleAccept} disabled={!signature || submitting}
-            style={{ background: signature ? "#1a1a1a" : "#e8e8e8", border: "none", color: signature ? "#fff" : "#bbb", fontFamily: sans, fontSize: 11, fontWeight: 300, padding: "12px 28px", cursor: signature ? "pointer" : "default", letterSpacing: 1, transition: "all 0.2s" }}>
+    <div style={{ fontFamily: sans }}>
+      {/* Topbar */}
+      <div className="topbar">
+        <div className="topbar-inner" style={{ padding: "0 48px" }}>
+          <span style={{ fontSize: 10, fontWeight: 400, letterSpacing: 6, padding: "20px 0", display: "block" }}>JEDDA</span>
+          <span style={{ fontSize: 9, fontWeight: 200, color: "#bbb" }}>{today}</span>
+        </div>
+        {isBoth && (
+          <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 48px" }}>
+            <div style={{ display: "flex", borderBottom: "1px solid #ebebeb" }}>
+              {[["pt","part-time"],["ft","full-time"]].map(([val, lbl]) => (
+                <button key={val} onClick={() => { setActiveMode(val); setOpenZone(null); }}
+                  style={{ flex: 1, padding: "11px 0", background: "none", border: "none", fontFamily: sans, fontSize: 9, fontWeight: 300, cursor: "pointer", letterSpacing: 2, color: activeMode === val ? "#1a1a1a" : "#bbb", borderBottom: activeMode === val ? "2px solid #1a1a1a" : "2px solid transparent", marginBottom: -1, transition: "all 0.15s" }}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="doc">
+        {/* Title */}
+        <div style={{ padding: "40px 0 32px" }}>
+          <p className="eyebrow" style={{ marginBottom: 8 }}>job offer</p>
+          <p style={{ fontSize: 26, fontWeight: 300, marginBottom: 6, lineHeight: 1.2 }}>{roleTitle}</p>
+          <div className="rule-light" />
+        </div>
+
+        {/* Greeting */}
+        <div className="section">
+          <p style={{ fontSize: 13, fontWeight: 300, marginBottom: 12 }}>Dear {firstName},</p>
+          <p style={{ fontSize: 12, fontWeight: 200, color: "#666", lineHeight: 2 }}>
+            We're pleased to offer you a position at Jedda. After our conversation, we're confident you'd bring the right energy and capability to the role — and we'd love to welcome you to the team.
+          </p>
+        </div>
+
+        {/* Details */}
+        <div className="section">
+          <p className="eyebrow">offer details</p>
+          <div className="rule-dark" />
+          <div className="detail-grid">
+            {getDetails(displayMode).map(([l, v]) => (
+              <div key={l} className="detail-row">
+                <p className="detail-label">{l}</p>
+                <p className="detail-value">{v}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Week */}
+        <div className="section">
+          <p className="eyebrow">your week</p>
+          <div className="rule-dark" />
+          <WeekSchedule mode={displayMode} />
+        </div>
+
+        {/* Role */}
+        <div className="section">
+          <p className="eyebrow">your role</p>
+          <div className="rule-dark" />
+          <p style={{ fontSize: 12, fontWeight: 200, color: "#888", lineHeight: 1.9, margin: "16px 0 18px" }}>
+            {displayMode === "ft"
+              ? "You own the full customer journey at Jedda — from the moment someone walks into the store, to the DM they send at 9pm, to the order they place online. One person who holds it all together."
+              : "You're the face of Jedda in the store. Your focus is the people who walk in, the space they experience, and making sure every interaction feels considered."}
+          </p>
+          <div className={`zones${zones.length === 3 ? " three" : ""}`}>
+            {zones.map((z, i) => (
+              <ZoneCard key={`${displayMode}-${i}`} zone={z} open={openZone === i} onToggle={() => setOpenZone(openZone === i ? null : i)} />
+            ))}
+          </div>
+          <ConnDiagram conn={conn} />
+        </div>
+
+        {/* Closing */}
+        <div className="rule-light" style={{ marginBottom: 24 }} />
+        <p style={{ fontSize: 12, fontWeight: 200, color: "#666", lineHeight: 2, marginBottom: 40 }}>
+          Please review this offer carefully. If you'd like to accept, sign below — your digital signature will be recorded along with the timestamp. You can also print or save this document for your records.
+        </p>
+
+        {/* Signature */}
+        <div style={{ marginBottom: 40, maxWidth: 380 }}>
+          <p style={{ fontSize: 8, fontWeight: 300, letterSpacing: 2, color: "#bbb", marginBottom: 12, textTransform: "uppercase" }}>your signature</p>
+          <SigCanvas onSign={setSignature} onClear={() => setSignature(null)} />
+          <p style={{ fontSize: 10, fontWeight: 200, color: "#bbb", marginTop: 8 }}>{app.full_name}</p>
+        </div>
+
+        {/* CTA */}
+        <div className="cta-row no-print">
+          {submitErr && <p style={{ fontSize: 11, color: "#c47a5a", fontWeight: 300 }}>{submitErr}</p>}
+          {!signature && <p style={{ fontSize: 11, fontWeight: 200, color: "#bbb" }}>please sign above to accept</p>}
+          <button className={`btn-accept${signature ? " on" : ""}`} disabled={!signature || submitting} onClick={handleAccept}>
             {submitting ? "confirming..." : "accept offer →"}
           </button>
-          <button onClick={() => window.print()}
-            style={{ background: "none", border: "none", fontFamily: sans, fontSize: 11, fontWeight: 300, color: "#bbb", cursor: "pointer", borderBottom: "1px solid #e8e8e8", paddingBottom: 1, letterSpacing: 0.5 }}>
-            print / download
-          </button>
+          <button className="btn-print" onClick={() => window.print()}>print / save</button>
+        </div>
+
+        <div style={{ marginTop: 64, borderTop: "1px solid #f0f0f0", paddingTop: 16, textAlign: "center", fontSize: 8, fontWeight: 200, color: "#ccc", letterSpacing: 2, textTransform: "uppercase" }}>
+          confidential — please do not share or distribute
         </div>
       </div>
-    </div>
-  );
-}
-
-function Section({ label, children }) {
-  return (
-    <div style={{ marginBottom: 32 }}>
-      <p style={{ fontSize: 9, fontWeight: 300, letterSpacing: 3, color: "#bbb", marginBottom: 10 }}>{label.toUpperCase()}</p>
-      <div style={{ height: 1, background: "#1a1a1a", marginBottom: 4 }} />
-      {children}
-    </div>
-  );
-}
-
-function DetailRow({ label, value }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 16, padding: "11px 0", borderBottom: "1px solid #f0f0f0", alignItems: "start" }}>
-      <p style={{ fontSize: 9, fontWeight: 300, color: "#aaa", letterSpacing: 1, paddingTop: 1 }}>{label.toUpperCase()}</p>
-      <p style={{ fontSize: 12, fontWeight: 300, color: "#1a1a1a", lineHeight: 1.7 }}>{value}</p>
     </div>
   );
 }
